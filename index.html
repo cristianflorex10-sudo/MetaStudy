@@ -1,0 +1,2109 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full bg-slate-900 text-slate-100">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#0f172a">
+  <title>MetaStudy — Organiza. Estudia. Avanza.</title>
+  <!-- PWA Manifest Inline Data URI -->
+  <link rel="manifest" href='data:application/manifest+json,{"name":"MetaStudy","short_name":"MetaStudy","start_url":".","display":"standalone","background_color":"#090d16","theme_color":"#2563eb","icons":[{"src":"https://placehold.co/192x192/2563eb/ffffff?text=MS","sizes":"192x192","type":"image/png"},{"src":"https://placehold.co/512x512/2563eb/ffffff?text=MetaStudy","sizes":"512x512","type":"image/png"}]}'>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Google Fonts (Inter) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              50: '#f0f6ff',
+              100: '#e0edff',
+              500: '#3b82f6',
+              600: '#2563eb',
+              700: '#1d4ed8',
+              800: '#1e40af',
+              900: '#1e3a8a',
+              accent: '#06b6d4'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* Custom Scrollbars */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0f172a;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #475569;
+    }
+    .touch-target {
+      min-height: 44px;
+      min-width: 44px;
+    }
+  </style>
+</head>
+<body class="h-full bg-slate-950 text-slate-100 font-sans antialiased selection:bg-brand-500 selection:text-white flex flex-col overflow-x-hidden">
+
+  <!-- Network / Offline Alert Bar -->
+  <div id="offline-bar" class="hidden bg-amber-600 text-white text-xs font-bold py-1 px-4 text-center sticky top-0 z-50 flex items-center justify-center gap-2 shadow-md">
+    <i class="fa-solid fa-wifi-slash"></i>
+    <span>Sin conexión a Internet. Estás en modo local PWA (Tus tareas y recordatorios locales permanecen activos).</span>
+  </div>
+
+  <!-- Toast Notification System Container -->
+  <div id="toast-container" class="fixed top-4 right-4 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none"></div>
+
+  <!-- Modal Overlay Container -->
+  <div id="modal-container" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 overflow-y-auto">
+    <div id="modal-box" class="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl transform transition-all scale-95 opacity-0">
+      <!-- Dynamic Content Rendered Here -->
+    </div>
+  </div>
+
+  <!-- APP VIEW SWITCHER -->
+  <div id="app-root" class="h-full w-full flex flex-col min-h-screen">
+
+    <!-- AUTH SECTION (Login / Register) -->
+    <section id="view-auth" class="flex-1 flex items-center justify-center p-4 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
+      <div class="w-full max-w-md bg-slate-900/90 border border-slate-800 rounded-2xl p-6 sm:p-8 shadow-2xl backdrop-blur-md">
+        
+        <!-- Header & Logo -->
+        <div class="text-center mb-8">
+          <div class="inline-flex items-center justify-center w-14 h-14 bg-brand-600/20 text-brand-500 rounded-2xl mb-3 border border-brand-500/30">
+            <i class="fa-solid fa-graduation-cap text-2xl"></i>
+          </div>
+          <h1 class="text-3xl font-extrabold tracking-tight text-white">MetaStudy</h1>
+          <p class="text-xs text-brand-400 font-medium tracking-wide mt-1 uppercase">Organiza. Estudia. Avanza.</p>
+          <p class="text-slate-400 text-xs mt-2">Plataforma Exclusiva de Organización para Educación Secundaria</p>
+        </div>
+
+        <!-- Auth Tabs -->
+        <div class="flex bg-slate-950 p-1 rounded-xl mb-6 border border-slate-800">
+          <button id="tab-login-btn" onclick="switchAuthTab('login')" class="flex-1 py-2 text-xs font-bold rounded-lg transition-all bg-brand-600 text-white shadow-md">Iniciar Sesión</button>
+          <button id="tab-register-btn" onclick="switchAuthTab('register')" class="flex-1 py-2 text-xs font-bold rounded-lg transition-all text-slate-400 hover:text-white">Registrarse</button>
+        </div>
+
+        <!-- FORM: LOGIN -->
+        <form id="form-login" onsubmit="handleLogin(event)" class="space-y-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Correo Electrónico</label>
+            <div class="relative">
+              <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-500"><i class="fa-solid fa-envelope text-sm"></i></span>
+              <input type="email" id="login-email" required class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white focus:outline-none focus:border-brand-500 transition-colors" placeholder="estudiante@secundaria.edu">
+            </div>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Contraseña</label>
+            <div class="relative">
+              <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-500"><i class="fa-solid fa-lock text-sm"></i></span>
+              <input type="password" id="login-password" required class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white focus:outline-none focus:border-brand-500 transition-colors" placeholder="••••••••">
+            </div>
+          </div>
+          <button type="submit" class="w-full py-3 bg-brand-600 hover:bg-brand-500 text-white font-bold rounded-xl shadow-lg shadow-brand-600/25 transition-all flex items-center justify-center gap-2">
+            <span>Entrar a MetaStudy</span>
+            <i class="fa-solid fa-arrow-right text-xs"></i>
+          </button>
+          <div class="text-center mt-3">
+            <button type="button" onclick="loadDemoAccount()" class="text-xs text-brand-400 hover:text-brand-300 underline">Probar con Cuenta Demo (Sexto C)</button>
+          </div>
+        </form>
+
+        <!-- FORM: REGISTER -->
+        <form id="form-register" onsubmit="handleRegister(event)" class="space-y-4 hidden">
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Nombre Completo</label>
+            <input type="text" id="reg-name" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-brand-500" placeholder="Ej. Carlos Mendoza">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Correo Electrónico</label>
+            <input type="email" id="reg-email" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-brand-500" placeholder="estudiante@secundaria.edu">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Contraseña</label>
+            <input type="password" id="reg-password" required minlength="6" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-brand-500" placeholder="••••••••">
+          </div>
+          
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-semibold text-slate-300 mb-1">Curso Exclusivo</label>
+              <select id="reg-course" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-brand-500">
+                <option value="Primero">Primero</option>
+                <option value="Segundo">Segundo</option>
+                <option value="Tercero">Tercero</option>
+                <option value="Cuarto">Cuarto</option>
+                <option value="Quinto">Quinto</option>
+                <option value="Sexto" selected>Sexto</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-300 mb-1">Paralelo</label>
+              <select id="reg-section" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-brand-500">
+                <option value="A">Paralelo A</option>
+                <option value="B">Paralelo B</option>
+                <option value="C" selected>Paralelo C</option>
+              </select>
+            </div>
+          </div>
+          <p class="text-[11px] text-slate-400 italic">⚠️ El horario oficial y las materias correspondientes se asignarán de manera automática a tu cuenta vacía.</p>
+
+          <button type="submit" class="w-full py-3 bg-brand-600 hover:bg-brand-500 text-white font-bold rounded-xl shadow-lg shadow-brand-600/25 transition-all flex items-center justify-center gap-2">
+            <i class="fa-solid fa-user-plus text-xs"></i>
+            <span>Crear Cuenta de Secundaria</span>
+          </button>
+        </form>
+
+      </div>
+    </section>
+
+    <!-- MAIN APP LAYOUT (Sidebar + Content) -->
+    <section id="view-dashboard" class="flex-1 flex flex-col md:flex-row h-screen overflow-hidden hidden">
+      
+      <!-- SIDEBAR (Desktop & Mobile Adaptive) -->
+      <aside id="sidebar" class="w-full md:w-64 bg-slate-900/95 border-b md:border-b-0 md:border-r border-slate-800 flex flex-col transition-all duration-300 z-30 flex-shrink-0">
+        
+        <!-- Sidebar Header -->
+        <div class="p-4 flex items-center justify-between border-b border-slate-800/80">
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 bg-brand-600/20 border border-brand-500/40 text-brand-500 rounded-xl flex items-center justify-center font-black">
+              <i class="fa-solid fa-graduation-cap text-lg"></i>
+            </div>
+            <div>
+              <h2 class="font-extrabold text-base tracking-tight text-white leading-tight">MetaStudy</h2>
+              <p id="user-badge-class" class="text-[10px] text-brand-400 font-semibold tracking-wider uppercase">Sexto C</p>
+            </div>
+          </div>
+          <!-- Collapse Toggle / Mobile Menu Close -->
+          <button onclick="toggleSidebarCollapse()" class="hidden md:flex text-slate-400 hover:text-white p-2 rounded-lg hover:bg-slate-800">
+            <i class="fa-solid fa-bars-staggered"></i>
+          </button>
+          <button onclick="toggleMobileMenu()" class="md:hidden text-slate-400 hover:text-white p-2">
+            <i class="fa-solid fa-xmark text-lg"></i>
+          </button>
+        </div>
+
+        <!-- CTA Button -->
+        <div class="p-3">
+          <button onclick="openModalCreateTask()" class="w-full py-2.5 px-4 bg-gradient-to-r from-brand-600 to-brand-500 hover:from-brand-500 hover:to-brand-400 text-white font-bold rounded-xl shadow-lg shadow-brand-600/20 flex items-center justify-center gap-2 transition-all text-xs">
+            <i class="fa-solid fa-plus"></i>
+            <span class="sidebar-text">+ Nueva tarea</span>
+          </button>
+        </div>
+
+        <!-- Navigation Links -->
+        <nav class="flex-1 overflow-y-auto p-2 space-y-1">
+          <a href="#" onclick="navTo('home')" id="nav-home" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-300 hover:bg-slate-800 hover:text-white transition-all active-nav">
+            <i class="fa-solid fa-house text-sm w-5 text-center text-brand-400"></i>
+            <span class="sidebar-text">Inicio</span>
+          </a>
+          <a href="#" onclick="navTo('schedule')" id="nav-schedule" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-300 hover:bg-slate-800 hover:text-white transition-all">
+            <i class="fa-solid fa-calendar-days text-sm w-5 text-center text-cyan-400"></i>
+            <span class="sidebar-text">Mi horario</span>
+          </a>
+          <a href="#" onclick="navTo('tasks')" id="nav-tasks" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-300 hover:bg-slate-800 hover:text-white transition-all">
+            <i class="fa-solid fa-list-check text-sm w-5 text-center text-emerald-400"></i>
+            <span class="sidebar-text">Mis tareas</span>
+          </a>
+          <a href="#" onclick="navTo('study')" id="nav-study" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-300 hover:bg-slate-800 hover:text-white transition-all">
+            <i class="fa-solid fa-book-open text-sm w-5 text-center text-indigo-400"></i>
+            <span class="sidebar-text">Estudio (Planificador)</span>
+          </a>
+          <a href="#" onclick="navTo('goals')" id="nav-goals" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-300 hover:bg-slate-800 hover:text-white transition-all">
+            <i class="fa-solid fa-bullseye text-sm w-5 text-center text-rose-400"></i>
+            <span class="sidebar-text">Objetivos</span>
+          </a>
+          <a href="#" onclick="navTo('calendar')" id="nav-calendar" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-300 hover:bg-slate-800 hover:text-white transition-all">
+            <i class="fa-solid fa-calendar text-sm w-5 text-center text-purple-400"></i>
+            <span class="sidebar-text">Calendario</span>
+          </a>
+          <a href="#" onclick="navTo('pomodoro')" id="nav-pomodoro" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-300 hover:bg-slate-800 hover:text-white transition-all">
+            <i class="fa-solid fa-stopwatch text-sm w-5 text-center text-amber-400"></i>
+            <span class="sidebar-text">Pomodoro</span>
+          </a>
+          <a href="#" onclick="navTo('stats')" id="nav-stats" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-300 hover:bg-slate-800 hover:text-white transition-all">
+            <i class="fa-solid fa-chart-pie text-sm w-5 text-center text-sky-400"></i>
+            <span class="sidebar-text">Estadísticas</span>
+          </a>
+          <a href="#" onclick="navTo('notifications')" id="nav-notifications" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-300 hover:bg-slate-800 hover:text-white transition-all justify-between">
+            <div class="flex items-center gap-3">
+              <i class="fa-solid fa-bell text-sm w-5 text-center text-yellow-400"></i>
+              <span class="sidebar-text">Notificaciones</span>
+            </div>
+            <span id="unread-notif-badge" class="hidden px-1.5 py-0.5 bg-rose-500 text-white font-bold text-[10px] rounded-full">0</span>
+          </a>
+          <a href="#" onclick="navTo('admin')" id="nav-admin" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-300 hover:bg-slate-800 hover:text-white transition-all">
+            <i class="fa-solid fa-user-shield text-sm w-5 text-center text-violet-400"></i>
+            <span class="sidebar-text">Panel Admin</span>
+          </a>
+        </nav>
+
+        <!-- Sidebar Footer (User Profile & Config) -->
+        <div class="p-3 border-t border-slate-800 bg-slate-950/50 space-y-1">
+          <a href="#" onclick="navTo('profile')" id="nav-profile" class="flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium text-slate-300 hover:bg-slate-800 hover:text-white">
+            <i class="fa-solid fa-circle-user text-sm text-slate-400"></i>
+            <span class="sidebar-text truncate" id="sidebar-user-name">Estudiante</span>
+          </a>
+          <a href="#" onclick="navTo('settings')" id="nav-settings" class="flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium text-slate-300 hover:bg-slate-800 hover:text-white">
+            <i class="fa-solid fa-gear text-sm text-slate-400"></i>
+            <span class="sidebar-text">Configuración</span>
+          </a>
+          <button onclick="handleLogout()" class="w-full text-left flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium text-rose-400 hover:bg-rose-500/10 transition-all">
+            <i class="fa-solid fa-right-from-bracket text-sm"></i>
+            <span class="sidebar-text">Cerrar Sesión</span>
+          </button>
+        </div>
+
+      </aside>
+
+      <!-- MOBILE TOP HEADER BAR -->
+      <div class="md:hidden bg-slate-900 border-b border-slate-800 p-3 flex items-center justify-between sticky top-0 z-20">
+        <div class="flex items-center gap-2">
+          <button onclick="toggleMobileMenu()" class="p-2 text-slate-300 hover:text-white">
+            <i class="fa-solid fa-bars text-lg"></i>
+          </button>
+          <span class="font-extrabold text-white text-base">MetaStudy</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <button onclick="openModalCreateTask()" class="px-3 py-1.5 bg-brand-600 text-white text-xs font-bold rounded-lg">+ Tarea</button>
+        </div>
+      </div>
+
+      <!-- MAIN CONTENT VIEW AREA -->
+      <main class="flex-1 overflow-y-auto bg-slate-950 p-4 sm:p-6 lg:p-8 relative" id="main-content-viewport">
+        
+        <!-- SECTION: HOME DASHBOARD -->
+        <div id="section-home" class="space-y-6 max-w-7xl mx-auto">
+          <!-- Welcome Banner -->
+          <div class="bg-gradient-to-r from-brand-900/60 via-slate-900 to-slate-900 border border-brand-500/30 rounded-2xl p-6 relative overflow-hidden shadow-xl">
+            <div class="relative z-10">
+              <h2 id="home-welcome-name" class="text-2xl sm:text-3xl font-black text-white">Hola, Estudiante 👋</h2>
+              <p id="home-welcome-grade" class="text-xs sm:text-sm font-semibold text-brand-400 mt-1">Sexto C — Horario Oficial Configurado</p>
+              <p class="text-slate-400 text-xs mt-2 max-w-xl">Bienvenido a tu panel de estudio. Monitorea tus tareas, sesiones Pomodoro y metas escolares para el nivel secundario.</p>
+            </div>
+          </div>
+
+          <!-- Quick Stats Cards (Real calculated data) -->
+          <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex items-center gap-4">
+              <div class="w-12 h-12 bg-emerald-500/10 text-emerald-400 rounded-xl flex items-center justify-center font-bold text-lg"><i class="fa-solid fa-square-check"></i></div>
+              <div>
+                <p class="text-xs font-semibold text-slate-400">Tareas Completas</p>
+                <p id="dash-stat-tasks" class="text-xl font-extrabold text-white">0</p>
+              </div>
+            </div>
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex items-center gap-4">
+              <div class="w-12 h-12 bg-amber-500/10 text-amber-400 rounded-xl flex items-center justify-center font-bold text-lg"><i class="fa-solid fa-clock"></i></div>
+              <div>
+                <p class="text-xs font-semibold text-slate-400">Horas Estudiadas</p>
+                <p id="dash-stat-hours" class="text-xl font-extrabold text-white">0.0h</p>
+              </div>
+            </div>
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex items-center gap-4">
+              <div class="w-12 h-12 bg-rose-500/10 text-rose-400 rounded-xl flex items-center justify-center font-bold text-lg"><i class="fa-solid fa-bullseye"></i></div>
+              <div>
+                <p class="text-xs font-semibold text-slate-400">Objetivos Alcanzados</p>
+                <p id="dash-stat-goals" class="text-xl font-extrabold text-white">0%</p>
+              </div>
+            </div>
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex items-center gap-4">
+              <div class="w-12 h-12 bg-brand-500/10 text-brand-400 rounded-xl flex items-center justify-center font-bold text-lg"><i class="fa-solid fa-fire"></i></div>
+              <div>
+                <p class="text-xs font-semibold text-slate-400">Sesiones Pomodoro</p>
+                <p id="dash-stat-sessions" class="text-xl font-extrabold text-white">0</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Main Dashboard Split Grid -->
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            <!-- Left Column: Today's Classes & Pending Tasks -->
+            <div class="lg:col-span-2 space-y-6">
+              
+              <!-- Today's Classes Card -->
+              <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+                <div class="flex items-center justify-between mb-4">
+                  <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                    <i class="fa-solid fa-calendar-day text-brand-400"></i>
+                    <span>Clases Oficiales de Hoy (<span id="dash-today-name">Lunes</span>)</span>
+                  </h3>
+                  <button onclick="navTo('schedule')" class="text-xs font-semibold text-brand-400 hover:underline">Ver Horario Completo &rarr;</button>
+                </div>
+                <div id="dash-today-classes" class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <!-- Rendered dynamically -->
+                </div>
+              </div>
+
+              <!-- Pending Tasks Card -->
+              <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+                <div class="flex items-center justify-between mb-4">
+                  <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                    <i class="fa-solid fa-list-check text-emerald-400"></i>
+                    <span>Mis Tareas Próximas</span>
+                  </h3>
+                  <button onclick="openModalCreateTask()" class="text-xs font-semibold text-brand-400 hover:underline">+ Crear Tarea</button>
+                </div>
+                <div id="dash-tasks-list" class="space-y-2">
+                  <!-- Rendered dynamically or Empty State -->
+                </div>
+              </div>
+
+            </div>
+
+            <!-- Right Column: Goals & Next Pomodoro -->
+            <div class="space-y-6">
+              
+              <!-- Active Academic Goals -->
+              <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+                <div class="flex items-center justify-between mb-4">
+                  <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                    <i class="fa-solid fa-bullseye text-rose-400"></i>
+                    <span>Mis Objetivos</span>
+                  </h3>
+                  <button onclick="openModalCreateGoal()" class="text-xs text-brand-400 font-semibold hover:underline">+ Nuevo</button>
+                </div>
+                <div id="dash-goals-list" class="space-y-3">
+                  <!-- Rendered dynamically or Empty State -->
+                </div>
+              </div>
+
+              <!-- Quick Pomodoro Launcher Card -->
+              <div class="bg-gradient-to-br from-slate-900 to-amber-950/30 border border-amber-500/20 rounded-2xl p-5 text-center">
+                <div class="w-12 h-12 bg-amber-500/20 text-amber-400 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <i class="fa-solid fa-stopwatch text-xl"></i>
+                </div>
+                <h4 class="font-bold text-white text-sm">¿Listo para estudiar?</h4>
+                <p class="text-xs text-slate-400 mt-1 mb-4">Inicia una sesión Pomodoro calibrada para tus materias de secundaria.</p>
+                <button onclick="navTo('pomodoro')" class="w-full py-2.5 bg-amber-600 hover:bg-amber-500 text-white font-bold rounded-xl text-xs transition-all shadow-md">
+                  Ir al Temporizador Pomodoro
+                </button>
+              </div>
+
+            </div>
+
+          </div>
+        </div>
+
+        <!-- SECTION: MI HORARIO -->
+        <div id="section-schedule" class="space-y-6 max-w-7xl mx-auto hidden">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+            <div>
+              <h2 class="text-xl sm:text-2xl font-extrabold text-white">Mi Horario Escolar Oficial</h2>
+              <p id="schedule-subtitle" class="text-xs text-slate-400 mt-1">Bloques oficiales preconfigurados para tu curso y paralelo.</p>
+            </div>
+            <div class="inline-flex bg-slate-900 p-1 rounded-xl border border-slate-800">
+              <span class="px-3 py-1 bg-brand-600 text-white text-xs font-bold rounded-lg">Exclusivo Secundaria</span>
+            </div>
+          </div>
+
+          <!-- Schedule Matrix Grid -->
+          <div class="overflow-x-auto bg-slate-900 border border-slate-800 rounded-2xl shadow-xl">
+            <table class="w-full text-left text-xs text-slate-300">
+              <thead class="bg-slate-950 text-slate-400 font-bold uppercase tracking-wider border-b border-slate-800">
+                <tr>
+                  <th class="p-3 w-28 text-center">Horario</th>
+                  <th class="p-3">Lunes</th>
+                  <th class="p-3">Martes</th>
+                  <th class="p-3">Miércoles</th>
+                  <th class="p-3">Jueves</th>
+                  <th class="p-3">Viernes</th>
+                  <th class="p-3">Sábado</th>
+                </tr>
+              </thead>
+              <tbody id="schedule-matrix-body" class="divide-y divide-slate-800/60 font-medium">
+                <!-- Dynamically Generated Matrix -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- SECTION: MIS TAREAS -->
+        <div id="section-tasks" class="space-y-6 max-w-7xl mx-auto hidden">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+            <div>
+              <h2 class="text-xl sm:text-2xl font-extrabold text-white">Gestión de Tareas</h2>
+              <p class="text-xs text-slate-400 mt-1">Crea, filtra y realiza seguimiento a tus deberes escolares.</p>
+            </div>
+            <button onclick="openModalCreateTask()" class="py-2.5 px-4 bg-brand-600 hover:bg-brand-500 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-2 shadow-lg">
+              <i class="fa-solid fa-plus"></i>
+              <span>+ Nueva tarea</span>
+            </button>
+          </div>
+
+          <!-- Filter & Search Controls -->
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <input type="text" id="task-search-input" oninput="renderTasksPage()" placeholder="Buscar por título..." class="bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-brand-500">
+            <select id="task-filter-subject" onchange="renderTasksPage()" class="bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-brand-500">
+              <option value="ALL">Todas las Materias del Curso</option>
+            </select>
+            <select id="task-filter-status" onchange="renderTasksPage()" class="bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-brand-500">
+              <option value="ALL">Todos los Estados</option>
+              <option value="PENDING">Pendiente</option>
+              <option value="IN_PROGRESS">En Progreso</option>
+              <option value="COMPLETED">Completada</option>
+              <option value="OVERDUE">🔴 Atrasadas</option>
+            </select>
+          </div>
+
+          <!-- Tasks Full Cards Grid -->
+          <div id="tasks-full-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <!-- Dynamic Tasks Rendered -->
+          </div>
+        </div>
+
+        <!-- SECTION: ESTUDIO (Planificador) -->
+        <div id="section-study" class="space-y-6 max-w-7xl mx-auto hidden">
+          <div class="border-b border-slate-800 pb-4">
+            <h2 class="text-xl sm:text-2xl font-extrabold text-white">Planificador e Inteligencia de Estudio</h2>
+            <p class="text-xs text-slate-400 mt-1">Genera automáticamente propuestas de sesiones fuera del horario escolar oficial.</p>
+          </div>
+
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
+              <h3 class="font-bold text-sm text-white">Generar Propuesta Inteligente</h3>
+              <p class="text-xs text-slate-400">El sistema analizará tus entregas pendientes y construirá un horario optimizado sin interferir con tus clases.</p>
+              <button onclick="generateStudyScheduleProposal()" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl text-xs transition-all shadow-md">
+                ⚡ Generar Sugerencia de Estudio
+              </button>
+            </div>
+
+            <div class="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-2xl p-5">
+              <h3 class="font-bold text-sm text-white mb-3">Sesiones Programadas</h3>
+              <div id="study-sessions-list" class="space-y-3">
+                <!-- Rendered Sessions -->
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SECTION: OBJETIVOS -->
+        <div id="section-goals" class="space-y-6 max-w-7xl mx-auto hidden">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+            <div>
+              <h2 class="text-xl sm:text-2xl font-extrabold text-white">Mis Objetivos Académicos</h2>
+              <p class="text-xs text-slate-400 mt-1">Establece metas de notas o repaso para las materias de tu curso.</p>
+            </div>
+            <button onclick="openModalCreateGoal()" class="py-2.5 px-4 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-2">
+              <i class="fa-solid fa-plus"></i>
+              <span>+ Nuevo Objetivo</span>
+            </button>
+          </div>
+
+          <div id="goals-full-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <!-- Dynamic Goals Rendered -->
+          </div>
+        </div>
+
+        <!-- SECTION: CALENDARIO -->
+        <div id="section-calendar" class="space-y-6 max-w-7xl mx-auto hidden">
+          <div class="border-b border-slate-800 pb-4">
+            <h2 class="text-xl sm:text-2xl font-extrabold text-white">Calendario Integrado</h2>
+            <p class="text-xs text-slate-400 mt-1">Visualiza entregas de tareas, exámenes y eventos personales.</p>
+          </div>
+
+          <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+            <div id="calendar-grid-view" class="grid grid-cols-7 gap-2 text-center text-xs">
+              <!-- Rendered Calendar Cells -->
+            </div>
+          </div>
+        </div>
+
+        <!-- SECTION: POMODORO -->
+        <div id="section-pomodoro" class="space-y-6 max-w-4xl mx-auto hidden">
+          <div class="text-center space-y-2">
+            <h2 class="text-2xl sm:text-3xl font-black text-white">Temporizador Pomodoro Técnico</h2>
+            <p class="text-xs text-slate-400">Tiempos sincronizados para máxima concentración en el estudio secundario.</p>
+          </div>
+
+          <!-- Pomodoro Box -->
+          <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl text-center space-y-6">
+            
+            <!-- Mode Switcher -->
+            <div class="inline-flex bg-slate-950 p-1.5 rounded-2xl border border-slate-800 gap-1">
+              <button id="pomo-mode-work" onclick="setPomodoroMode('WORK')" class="px-4 py-2 text-xs font-bold rounded-xl bg-amber-600 text-white transition-all">Estudio (25m)</button>
+              <button id="pomo-mode-short" onclick="setPomodoroMode('SHORT')" class="px-4 py-2 text-xs font-bold rounded-xl text-slate-400 hover:text-white transition-all">Descanso Corto (5m)</button>
+              <button id="pomo-mode-long" onclick="setPomodoroMode('LONG')" class="px-4 py-2 text-xs font-bold rounded-xl text-slate-400 hover:text-white transition-all">Descanso Largo (15m)</button>
+            </div>
+
+            <!-- Subject Selection for Session -->
+            <div class="max-w-xs mx-auto">
+              <label class="block text-[11px] font-semibold text-slate-400 mb-1">Materia a estudiar:</label>
+              <select id="pomo-subject-select" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500">
+                <!-- Filtered dynamically based on grade schedule -->
+              </select>
+            </div>
+
+            <!-- Big Timer Display -->
+            <div class="py-6">
+              <div id="pomodoro-timer-display" class="text-6xl sm:text-8xl font-black font-mono tracking-wider text-white select-none">
+                25:00
+              </div>
+              <p id="pomodoro-status-label" class="text-xs font-bold text-amber-400 uppercase tracking-widest mt-3">Estado: Preparado</p>
+            </div>
+
+            <!-- Action Controls -->
+            <div class="flex items-center justify-center gap-3">
+              <button id="btn-pomo-start" onclick="startPomodoro()" class="px-6 py-3 bg-amber-600 hover:bg-amber-500 text-white font-extrabold rounded-2xl text-sm transition-all shadow-lg shadow-amber-600/20 touch-target">
+                <i class="fa-solid fa-play mr-2"></i>Iniciar
+              </button>
+              <button id="btn-pomo-pause" onclick="pausePomodoro()" class="px-6 py-3 bg-slate-800 hover:bg-slate-700 text-white font-extrabold rounded-2xl text-sm transition-all hidden touch-target">
+                <i class="fa-solid fa-pause mr-2"></i>Pausar
+              </button>
+              <button id="btn-pomo-stop" onclick="stopPomodoro()" class="px-4 py-3 bg-rose-600/20 text-rose-400 hover:bg-rose-600/30 font-bold rounded-2xl text-xs transition-all touch-target">
+                <i class="fa-solid fa-square mr-1"></i>Detener
+              </button>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- SECTION: ESTADÍSTICAS -->
+        <div id="section-stats" class="space-y-6 max-w-7xl mx-auto hidden">
+          <div class="border-b border-slate-800 pb-4">
+            <h2 class="text-xl sm:text-2xl font-extrabold text-white">Estadísticas de Progreso Real</h2>
+            <p class="text-xs text-slate-400 mt-1">Métricas calculadas exclusivamente desde tus registros completados.</p>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 text-center">
+              <p class="text-xs text-slate-400 font-semibold">Minutos Totales Pomodoro</p>
+              <p id="stats-total-pomo-min" class="text-3xl font-black text-amber-400 mt-2">0 min</p>
+            </div>
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 text-center">
+              <p class="text-xs text-slate-400 font-semibold">Total Tareas Completadas</p>
+              <p id="stats-total-tasks-done" class="text-3xl font-black text-emerald-400 mt-2">0</p>
+            </div>
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 text-center">
+              <p class="text-xs text-slate-400 font-semibold">Porcentaje Objetivos</p>
+              <p id="stats-goals-pct" class="text-3xl font-black text-rose-400 mt-2">0%</p>
+            </div>
+          </div>
+
+          <!-- Pomodoro Session History Table -->
+          <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+            <h3 class="font-bold text-sm text-white mb-4">Historial de Sesiones Pomodoro Realizadas</h3>
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-xs text-slate-300">
+                <thead class="bg-slate-950 text-slate-400 font-bold border-b border-slate-800">
+                  <tr>
+                    <th class="p-2">Fecha / Hora</th>
+                    <th class="p-2">Materia</th>
+                    <th class="p-2">Minutos Reales</th>
+                    <th class="p-2">Estado</th>
+                  </tr>
+                </thead>
+                <tbody id="stats-pomo-history-tbody" class="divide-y divide-slate-800">
+                  <!-- Dynamic Rows -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- SECTION: NOTIFICACIONES -->
+        <div id="section-notifications" class="space-y-6 max-w-4xl mx-auto hidden">
+          <div class="flex items-center justify-between border-b border-slate-800 pb-4">
+            <div>
+              <h2 class="text-xl sm:text-2xl font-extrabold text-white">Centro de Notificaciones</h2>
+              <p class="text-xs text-slate-400 mt-1">Alertas de entregas y sesiones.</p>
+            </div>
+            <button onclick="markAllNotificationsAsRead()" class="text-xs text-brand-400 hover:underline font-semibold">
+              Marcar todas como leídas
+            </button>
+          </div>
+
+          <div id="notifications-list" class="space-y-3">
+            <!-- Dynamic Notifications -->
+          </div>
+        </div>
+
+        <!-- SECTION: PANEL ADMIN -->
+        <div id="section-admin" class="space-y-6 max-w-7xl mx-auto hidden">
+          <div class="border-b border-slate-800 pb-4">
+            <h2 class="text-xl sm:text-2xl font-extrabold text-violet-400">Panel Administrativo MetaStudy</h2>
+            <p class="text-xs text-slate-400 mt-1">Gestión de cursos, paralelos y matriz horaria del sistema.</p>
+          </div>
+
+          <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
+            <h3 class="text-sm font-bold text-white">Selector de Horario para Edición</h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-semibold text-slate-300 mb-1">Curso</label>
+                <select id="admin-course-select" onchange="renderAdminScheduleView()" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white">
+                  <option value="Primero">Primero</option>
+                  <option value="Segundo">Segundo</option>
+                  <option value="Tercero">Tercero</option>
+                  <option value="Cuarto">Cuarto</option>
+                  <option value="Quinto">Quinto</option>
+                  <option value="Sexto" selected>Sexto</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-300 mb-1">Paralelo</label>
+                <select id="admin-section-select" onchange="renderAdminScheduleView()" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white">
+                  <option value="A">A</option>
+                  <option value="B">B</option>
+                  <option value="C" selected>C</option>
+                </select>
+              </div>
+            </div>
+            
+            <div id="admin-schedule-preview" class="pt-4 border-t border-slate-800 overflow-x-auto">
+              <!-- Editable Matrix view for Admin -->
+            </div>
+          </div>
+        </div>
+
+        <!-- SECTION: PERFIL -->
+        <div id="section-profile" class="space-y-6 max-w-3xl mx-auto hidden">
+          <div class="border-b border-slate-800 pb-4">
+            <h2 class="text-xl sm:text-2xl font-extrabold text-white">Perfil del Estudiante</h2>
+            <p class="text-xs text-slate-400 mt-1">Información escolar registrada.</p>
+          </div>
+
+          <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
+            <div class="flex items-center gap-4">
+              <div class="w-16 h-16 bg-brand-600/20 text-brand-500 rounded-2xl flex items-center justify-center font-black text-2xl border border-brand-500/30">
+                <i class="fa-solid fa-user-graduate"></i>
+              </div>
+              <div>
+                <h3 id="profile-display-name" class="text-lg font-bold text-white">Carlos Mendoza</h3>
+                <p id="profile-display-email" class="text-xs text-slate-400">estudiante@secundaria.edu</p>
+                <span id="profile-display-grade" class="inline-block px-2.5 py-0.5 bg-brand-600/30 text-brand-400 text-[11px] font-bold rounded-md mt-1">Sexto C</span>
+              </div>
+            </div>
+
+            <div class="pt-4 border-t border-slate-800">
+              <label class="block text-xs font-semibold text-slate-300 mb-1">Cambiar Curso o Paralelo (Afectará tu Horario Asignado)</label>
+              <div class="grid grid-cols-2 gap-3">
+                <select id="profile-change-course" class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white">
+                  <option value="Primero">Primero</option>
+                  <option value="Segundo">Segundo</option>
+                  <option value="Tercero">Tercero</option>
+                  <option value="Cuarto">Cuarto</option>
+                  <option value="Quinto">Quinto</option>
+                  <option value="Sexto">Sexto</option>
+                </select>
+                <select id="profile-change-section" class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white">
+                  <option value="A">Paralelo A</option>
+                  <option value="B">Paralelo B</option>
+                  <option value="C">Paralelo C</option>
+                </select>
+              </div>
+              <button onclick="updateStudentGradeSection()" class="mt-3 px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white font-bold rounded-xl text-xs">Actualizar Asignación Escolar</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- SECTION: CONFIGURACIÓN -->
+        <div id="section-settings" class="space-y-6 max-w-3xl mx-auto hidden">
+          <div class="border-b border-slate-800 pb-4">
+            <h2 class="text-xl sm:text-2xl font-extrabold text-white">Configuración del Sistema</h2>
+            <p class="text-xs text-slate-400 mt-1">Ajustes de notificaciones reales (estilo WhatsApp), sonido y permisos del sistema.</p>
+          </div>
+
+          <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-6">
+            
+            <div class="flex items-center justify-between flex-wrap gap-3">
+              <div>
+                <p class="text-sm font-bold text-white">Notificaciones Reales del Sistema (Barra del Teléfono / Desktop)</p>
+                <p id="notification-permission-status" class="text-xs text-slate-400">Estado de permisos: Pendiente</p>
+              </div>
+              <button onclick="requestBrowserNotificationPermission()" class="px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold rounded-xl">Activar Permisos Reales</button>
+            </div>
+
+            <div class="pt-4 border-t border-slate-800 space-y-4">
+              <p class="text-sm font-bold text-white">Sonido y Tono de Alertas</p>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-xs font-semibold text-slate-400 mb-1">Tono de Recordatorio Previo</label>
+                  <select id="sound-pref-reminder" onchange="saveSoundPreferences()" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white">
+                    <option value="bell">Campana Suave (Por Defecto)</option>
+                    <option value="chime">Timbre de WhatsApp</option>
+                    <option value="alarm">Alarma Intensiva</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-slate-400 mb-1">Tono de Vencimiento / Retraso</label>
+                  <select id="sound-pref-overdue" onchange="saveSoundPreferences()" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white">
+                    <option value="alarm">Alarma Intensiva (Por Defecto)</option>
+                    <option value="chime">Timbre Doble</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="flex items-center gap-2 pt-2">
+                <button onclick="playNotificationSound('reminder')" class="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold rounded-xl flex items-center gap-2">
+                  <i class="fa-solid fa-volume-high"></i>
+                  <span>Probar Tono Recordatorio</span>
+                </button>
+                <button onclick="playNotificationSound('overdue')" class="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold rounded-xl flex items-center gap-2">
+                  <i class="fa-solid fa-triangle-exclamation"></i>
+                  <span>Probar Tono Vencimiento</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="pt-4 border-t border-slate-800">
+              <p class="text-xs text-slate-400 leading-relaxed">
+                <i class="fa-solid fa-mobile-screen-button mr-1 text-brand-400"></i>
+                <strong>Para usuarios de Celular (Android / iOS):</strong> Para asegurar que las notificaciones suenen aun con la pantalla bloqueada, instala MetaStudy como PWA usando el menú del navegador <em>"Añadir a la pantalla de inicio"</em> y concede permisos de Notificaciones del Sistema.
+              </p>
+            </div>
+
+          </div>
+        </div>
+
+      </main>
+    </section>
+
+  </div>
+
+  <!-- JAVASCRIPT LOGIC & ENGINE -->
+  <script>
+    /* ==========================================================================
+       1. GLOBAL CONSTANTS & MASTER SCHEDULE DATA (18 GROUPS EXACTLY)
+       ========================================================================== */
+
+    // Strict allowed secondary subjects
+    const ALLOWED_SUBJECTS = [
+      'Matemática', 'Lenguaje', 'Inglés', 'Religión', 'Música', 'Psicología',
+      'Artes Plásticas', 'Biología', 'C. Sociales', 'Tecnología',
+      'Educación Física', 'Filosofía', 'Física', 'Química', 'Valores'
+    ];
+
+    // Official Time Blocks
+    const TIME_BLOCKS = [
+      { id: 1, type: 'CLASS', label: 'Bloque 1', start: '13:45', end: '14:25' },
+      { id: 2, type: 'CLASS', label: 'Bloque 2', start: '14:25', end: '15:05' },
+      { id: 'R1', type: 'RECESS', label: 'RECREO', start: '15:05', end: '15:15' },
+      { id: 3, type: 'CLASS', label: 'Bloque 3', start: '15:15', end: '15:55' },
+      { id: 4, type: 'CLASS', label: 'Bloque 4', start: '15:55', end: '16:35' },
+      { id: 'R2', type: 'RECESS', label: 'RECREO', start: '16:35', end: '16:45' },
+      { id: 5, type: 'CLASS', label: 'Bloque 5', start: '16:45', end: '17:25' },
+      { id: 6, type: 'CLASS', label: 'Bloque 6', start: '17:25', end: '18:05' }
+    ];
+
+    const DAYS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+
+    // Master 18 Schedules Dictionary
+    const OFFICIAL_SCHEDULES = {
+      'Primero_A': {
+        'Lunes': ['Música', 'Música', 'RECREO', 'Psicología', 'Psicología', 'RECREO', 'Lenguaje', 'Lenguaje'],
+        'Martes': ['Inglés', 'Inglés', 'RECREO', 'Lenguaje', 'Lenguaje', 'RECREO', 'Religión', 'Religión'],
+        'Miércoles': ['Artes Plásticas', 'Artes Plásticas', 'RECREO', 'Biología', 'Biología', 'RECREO', 'C. Sociales', 'C. Sociales'],
+        'Jueves': ['Lenguaje', 'Lenguaje', 'RECREO', 'Matemática', 'Matemática', 'RECREO', 'C. Sociales', 'Biología'],
+        'Viernes': ['Tecnología', 'Tecnología', 'RECREO', 'Educación Física', 'Educación Física', 'RECREO', 'Matemática', 'Matemática'],
+        'Sábado': ['Matemática', 'Matemática', 'RECREO', 'Tecnología', 'Tecnología', 'RECREO', '-', '-']
+      },
+      'Primero_B': {
+        'Lunes': ['Matemática', 'Matemática', 'RECREO', 'Biología', 'Biología', 'RECREO', 'Psicología', 'Psicología'],
+        'Martes': ['Lenguaje', 'Lenguaje', 'RECREO', 'C. Sociales', 'Matemática', 'RECREO', 'Artes Plásticas', 'Artes Plásticas'],
+        'Miércoles': ['Biología', 'Biología', 'RECREO', 'Lenguaje', 'Lenguaje', 'RECREO', 'Educación Física', 'Educación Física'],
+        'Jueves': ['Matemática', 'Matemática', 'RECREO', 'Tecnología', 'Tecnología', 'RECREO', 'C. Sociales', 'C. Sociales'],
+        'Viernes': ['Lenguaje', 'Lenguaje', 'RECREO', 'Tecnología', 'Tecnología', 'RECREO', 'Música', 'Música'],
+        'Sábado': ['Inglés', 'Inglés', 'RECREO', 'Religión', 'Religión', 'RECREO', '-', '-']
+      },
+      'Primero_C': {
+        'Lunes': ['Lenguaje', 'Lenguaje', 'RECREO', 'Matemática', 'Matemática', 'RECREO', 'Biología', 'Biología'],
+        'Martes': ['Psicología', 'Psicología', 'RECREO', 'Matemática', 'C. Sociales', 'RECREO', 'Educación Física', 'Educación Física'],
+        'Miércoles': ['Lenguaje', 'Lenguaje', 'RECREO', 'Tecnología', 'Tecnología', 'RECREO', 'Religión', 'Religión'],
+        'Jueves': ['Biología', 'Biología', 'RECREO', 'Música', 'Música', 'RECREO', 'Inglés', 'Inglés'],
+        'Viernes': ['C. Sociales', 'C. Sociales', 'RECREO', 'Lenguaje', 'Lenguaje', 'RECREO', 'Tecnología', 'Tecnología'],
+        'Sábado': ['Artes Plásticas', 'Artes Plásticas', 'RECREO', 'Matemática', 'Matemática', 'RECREO', '-', '-']
+      },
+      'Segundo_A': {
+        'Lunes': ['Psicología', 'Psicología', 'RECREO', 'Tecnología', 'Tecnología', 'RECREO', 'Lenguaje', 'Lenguaje'],
+        'Martes': ['C. Sociales', 'C. Sociales', 'RECREO', 'Lenguaje', 'Lenguaje', 'RECREO', 'Matemática', 'Matemática'],
+        'Miércoles': ['Biología', 'Biología', 'RECREO', 'Lenguaje', 'Lenguaje', 'RECREO', 'Inglés', 'Inglés'],
+        'Jueves': ['Biología', 'Biología', 'RECREO', 'Educación Física', 'Educación Física', 'RECREO', 'Religión', 'Religión'],
+        'Viernes': ['Música', 'Música', 'RECREO', 'C. Sociales', 'Matemática', 'RECREO', 'Artes Plásticas', 'Artes Plásticas'],
+        'Sábado': ['Matemática', 'Matemática', 'RECREO', 'Tecnología', 'Tecnología', 'RECREO', '-', '-']
+      },
+      'Segundo_B': {
+        'Lunes': ['Tecnología', 'Tecnología', 'RECREO', 'Inglés', 'Inglés', 'RECREO', 'Matemática', 'Matemática'],
+        'Martes': ['Lenguaje', 'Lenguaje', 'RECREO', 'Música', 'Música', 'RECREO', 'Psicología', 'Psicología'],
+        'Miércoles': ['Lenguaje', 'Lenguaje', 'RECREO', 'Educación Física', 'Educación Física', 'RECREO', 'Tecnología', 'Tecnología'],
+        'Jueves': ['Artes Plásticas', 'Artes Plásticas', 'RECREO', 'Biología', 'Biología', 'RECREO', 'Matemática', 'Matemática'],
+        'Viernes': ['Lenguaje', 'Lenguaje', 'RECREO', 'Matemática', 'C. Sociales', 'RECREO', 'Religión', 'Religión'],
+        'Sábado': ['C. Sociales', 'C. Sociales', 'RECREO', 'Biología', 'Biología', 'RECREO', '-', '-']
+      },
+      'Segundo_C': {
+        'Lunes': ['Lenguaje', 'Lenguaje', 'RECREO', 'Música', 'Música', 'RECREO', 'Tecnología', 'Tecnología'],
+        'Martes': ['Matemática', 'Matemática', 'RECREO', 'Artes Plásticas', 'Artes Plásticas', 'RECREO', 'C. Sociales', 'C. Sociales'],
+        'Miércoles': ['Tecnología', 'Tecnología', 'RECREO', 'Biología', 'Biología', 'RECREO', 'Lenguaje', 'Lenguaje'],
+        'Jueves': ['Inglés', 'Inglés', 'RECREO', 'C. Sociales', 'Matemática', 'RECREO', 'Religión', 'Religión'],
+        'Viernes': ['Matemática', 'Matemática', 'RECREO', 'Educación Física', 'Educación Física', 'RECREO', 'Psicología', 'Psicología'],
+        'Sábado': ['Biología', 'Biología', 'RECREO', 'Lenguaje', 'Lenguaje', 'RECREO', '-', '-']
+      },
+      'Tercero_A': {
+        'Lunes': ['Lenguaje', 'Lenguaje', 'RECREO', 'C. Sociales', 'C. Sociales', 'RECREO', 'Filosofía', 'Filosofía'],
+        'Martes': ['Lenguaje', 'Lenguaje', 'RECREO', 'Educación Física', 'Educación Física', 'RECREO', 'C. Sociales', 'C. Sociales'],
+        'Miércoles': ['Biología', 'Biología', 'RECREO', 'Lenguaje', 'Lenguaje', 'RECREO', 'Física', 'Física'],
+        'Jueves': ['Artes Plásticas', 'Artes Plásticas', 'RECREO', 'Biología', 'Biología', 'RECREO', 'Matemática', 'Matemática'],
+        'Viernes': ['Matemática', 'Matemática', 'RECREO', 'Música', 'Música', 'RECREO', 'Química', 'Química'],
+        'Sábado': ['C. Sociales', 'C. Sociales', 'RECREO', 'Valores', 'Valores', 'RECREO', 'Inglés', 'Inglés']
+      },
+      'Tercero_B': {
+        'Lunes': ['Música', 'Música', 'RECREO', 'Lenguaje', 'Lenguaje', 'RECREO', 'Matemática', 'Matemática'],
+        'Martes': ['Química', 'Química', 'RECREO', 'Filosofía', 'Filosofía', 'RECREO', 'Matemática', 'Matemática'],
+        'Miércoles': ['Física', 'Física', 'RECREO', 'C. Sociales', 'C. Sociales', 'RECREO', 'Biología', 'Biología'],
+        'Jueves': ['Valores', 'Valores', 'RECREO', 'Artes Plásticas', 'Artes Plásticas', 'RECREO', 'Lenguaje', 'Lenguaje'],
+        'Viernes': ['Biología', 'Biología', 'RECREO', 'C. Sociales', 'Matemática', 'RECREO', 'Lenguaje', 'Lenguaje'],
+        'Sábado': ['Inglés', 'Inglés', 'RECREO', 'Educación Física', 'Educación Física', 'RECREO', 'C. Sociales', 'C. Sociales']
+      },
+      'Tercero_C': {
+        'Lunes': ['Artes Plásticas', 'Artes Plásticas', 'RECREO', 'Biología', 'Biología', 'RECREO', 'C. Sociales', 'C. Sociales'],
+        'Martes': ['Matemática', 'Matemática', 'RECREO', 'Física', 'Física', 'RECREO', 'Lenguaje', 'Lenguaje'],
+        'Miércoles': ['Lenguaje', 'Lenguaje', 'RECREO', 'Filosofía', 'Filosofía', 'RECREO', 'C. Sociales', 'C. Sociales'],
+        'Jueves': ['Química', 'Química', 'RECREO', 'Valores', 'Valores', 'RECREO', 'Inglés', 'Inglés'],
+        'Viernes': ['Lenguaje', 'Lenguaje', 'RECREO', 'Matemática', 'C. Sociales', 'RECREO', 'Biología', 'Biología'],
+        'Sábado': ['Educación Física', 'Educación Física', 'RECREO', 'Música', 'Música', 'RECREO', 'Matemática', 'Matemática']
+      },
+      'Cuarto_A': {
+        'Lunes': ['C. Sociales', 'C. Sociales', 'RECREO', 'Matemática', 'Matemática', 'RECREO', 'Música', 'Música'],
+        'Martes': ['Artes Plásticas', 'Artes Plásticas', 'RECREO', 'C. Sociales', 'C. Sociales', 'RECREO', 'Inglés', 'Inglés'],
+        'Miércoles': ['Filosofía', 'Filosofía', 'RECREO', 'Física', 'Física', 'RECREO', 'Lenguaje', 'Lenguaje'],
+        'Jueves': ['Biología', 'Biología', 'RECREO', 'Matemática', 'Matemática', 'RECREO', 'Valores', 'Valores'],
+        'Viernes': ['Educación Física', 'Educación Física', 'RECREO', 'Biología', 'Biología', 'RECREO', 'Lenguaje', 'Lenguaje'],
+        'Sábado': ['Química', 'Química', 'RECREO', 'C. Sociales', 'Matemática', 'RECREO', '-', '-']
+      },
+      'Cuarto_B': {
+        'Lunes': ['Biología', 'Biología', 'RECREO', 'Lenguaje', 'Lenguaje', 'RECREO', 'Inglés', 'Inglés'],
+        'Martes': ['Valores', 'Valores', 'RECREO', 'Matemática', 'Matemática', 'RECREO', 'Lenguaje', 'Lenguaje'],
+        'Miércoles': ['C. Sociales', 'C. Sociales', 'RECREO', 'Biología', 'Biología', 'RECREO', 'Filosofía', 'Filosofía'],
+        'Jueves': ['Matemática', 'Matemática', 'RECREO', 'Química', 'Química', 'RECREO', 'Educación Física', 'Educación Física'],
+        'Viernes': ['Física', 'Física', 'RECREO', 'Artes Plásticas', 'Artes Plásticas', 'RECREO', 'C. Sociales', 'C. Sociales'],
+        'Sábado': ['Música', 'Música', 'RECREO', 'Matemática', 'C. Sociales', 'RECREO', '-', '-']
+      },
+      'Cuarto_C': {
+        'Lunes': ['Matemática', 'Matemática', 'RECREO', 'Artes Plásticas', 'Artes Plásticas', 'RECREO', 'Biología', 'Biología'],
+        'Martes': ['C. Sociales', 'C. Sociales', 'RECREO', 'Inglés', 'Inglés', 'RECREO', 'Música', 'Música'],
+        'Miércoles': ['Educación Física', 'Educación Física', 'RECREO', 'Valores', 'Valores', 'RECREO', 'Lenguaje', 'Lenguaje'],
+        'Jueves': ['Filosofía', 'Filosofía', 'RECREO', 'Lenguaje', 'Lenguaje', 'RECREO', 'Biología', 'Biología'],
+        'Viernes': ['C. Sociales', 'Matemática', 'RECREO', 'C. Sociales', 'Matemática', 'RECREO', 'Matemática', '-'],
+        'Sábado': ['Matemática', 'C. Sociales', 'RECREO', 'Química', 'Química', 'RECREO', '-', '-']
+      },
+      'Quinto_A': {
+        'Lunes': ['Física', 'Filosofía', 'RECREO', 'Matemática', 'Lenguaje', 'RECREO', '-', '-'],
+        'Martes': ['Educación Física', 'Educación Física', 'RECREO', 'Lenguaje', 'Lenguaje', 'RECREO', 'C. Sociales', 'C. Sociales'],
+        'Miércoles': ['Artes Plásticas', 'Artes Plásticas', 'RECREO', 'Inglés', 'Inglés', 'RECREO', 'C. Sociales', 'C. Sociales'],
+        'Jueves': ['Matemática', 'Matemática', 'RECREO', 'Biología', 'Biología', 'RECREO', 'Valores', 'Valores'],
+        'Viernes': ['Matemática', 'Matemática', 'RECREO', 'Química', 'Química', 'RECREO', 'C. Sociales', 'C. Sociales'],
+        'Sábado': ['Música', 'Música', 'RECREO', 'Biología', 'Biología', 'RECREO', 'C. Sociales', 'C. Sociales']
+      },
+      'Quinto_B': {
+        'Lunes': ['Biología', 'Biología', 'RECREO', 'Música', 'Música', 'RECREO', 'Lenguaje', 'Matemática'],
+        'Martes': ['C. Sociales', 'C. Sociales', 'RECREO', 'Artes Plásticas', 'Artes Plásticas', 'RECREO', 'Matemática', 'Matemática'],
+        'Miércoles': ['Inglés', 'Inglés', 'RECREO', 'C. Sociales', 'C. Sociales', 'RECREO', 'Física', 'Física'],
+        'Jueves': ['C. Sociales', 'C. Sociales', 'RECREO', 'Matemática', 'Matemática', 'RECREO', 'Filosofía', 'Filosofía'],
+        'Viernes': ['Química', 'Química', 'RECREO', 'Lenguaje', 'Lenguaje', 'RECREO', 'Educación Física', 'Educación Física'],
+        'Sábado': ['C. Sociales', 'C. Sociales', 'RECREO', 'Valores', 'Valores', 'RECREO', 'Biología', 'Biología']
+      },
+      'Quinto_C': {
+        'Lunes': ['Inglés', 'Lenguaje', 'RECREO', 'Matemática', 'Física', 'RECREO', '-', '-'],
+        'Martes': ['Química', 'Química', 'RECREO', 'Valores', 'Valores', 'RECREO', 'Filosofía', 'Filosofía'],
+        'Miércoles': ['C. Sociales', 'C. Sociales', 'RECREO', 'Música', 'Música', 'RECREO', 'Biología', 'Biología'],
+        'Jueves': ['Educación Física', 'Educación Física', 'RECREO', 'C. Sociales', 'C. Sociales', 'RECREO', 'Matemática', 'Matemática'],
+        'Viernes': ['Artes Plásticas', 'Artes Plásticas', 'RECREO', 'C. Sociales', 'C. Sociales', 'RECREO', 'Matemática', 'Matemática'],
+        'Sábado': ['Biología', 'Biología', 'RECREO', 'C. Sociales', 'C. Sociales', 'RECREO', 'Lenguaje', 'Lenguaje']
+      },
+      'Sexto_A': {
+        'Lunes': ['Matemática', 'Matemática', 'RECREO', 'Biología', 'Biología', 'RECREO', 'Artes Plásticas', 'Artes Plásticas'],
+        'Martes': ['Filosofía', 'Filosofía', 'RECREO', 'Química', 'Química', 'RECREO', 'Lenguaje', 'Lenguaje'],
+        'Miércoles': ['C. Sociales', 'C. Sociales', 'RECREO', 'Física', 'Física', 'RECREO', 'Música', 'Música'],
+        'Jueves': ['Inglés', 'Inglés', 'RECREO', 'C. Sociales', 'C. Sociales', 'RECREO', 'Biología', 'Biología'],
+        'Viernes': ['Valores', 'Valores', 'RECREO', 'Lenguaje', 'Matemática', 'RECREO', 'C. Sociales', 'C. Sociales'],
+        'Sábado': ['C. Sociales', 'C. Sociales', 'RECREO', 'Educación Física', 'Educación Física', 'RECREO', 'Matemática', 'Matemática']
+      },
+      'Sexto_B': {
+        'Lunes': ['Biología', 'Biología', 'RECREO', 'Física', 'Física', 'RECREO', 'Música', 'Música'],
+        'Martes': ['Inglés', 'Inglés', 'RECREO', 'Matemática', 'Matemática', 'RECREO', 'C. Sociales', 'C. Sociales'],
+        'Miércoles': ['Valores', 'Valores', 'RECREO', 'C. Sociales', 'C. Sociales', 'RECREO', 'Biología', 'Biología'],
+        'Jueves': ['C. Sociales', 'C. Sociales', 'RECREO', 'Filosofía', 'Filosofía', 'RECREO', 'Artes Plásticas', 'Artes Plásticas'],
+        'Viernes': ['C. Sociales', 'C. Sociales', 'RECREO', 'Matemática', 'Lenguaje', 'RECREO', 'Química', 'Química'],
+        'Sábado': ['Lenguaje', 'Lenguaje', 'RECREO', 'Matemática', 'Matemática', 'RECREO', 'Educación Física', 'Educación Física']
+      },
+      'Sexto_C': {
+        'Lunes': ['Filosofía', 'Filosofía', 'RECREO', 'Matemática', 'Lenguaje', 'RECREO', 'Biología', 'Biología'],
+        'Martes': ['Matemática', 'Matemática', 'RECREO', 'C. Sociales', 'C. Sociales', 'RECREO', 'Artes Plásticas', 'Artes Plásticas'],
+        'Miércoles': ['Física', 'Física', 'RECREO', 'Valores', 'Valores', 'RECREO', 'C. Sociales', 'C. Sociales'],
+        'Jueves': ['Química', 'Química', 'RECREO', 'Inglés', 'Inglés', 'RECREO', 'C. Sociales', 'C. Sociales'],
+        'Viernes': ['Música', 'Música', 'RECREO', 'Educación Física', 'Educación Física', 'RECREO', 'Lenguaje', 'Lenguaje'],
+        'Sábado': ['Matemática', 'Matemática', 'RECREO', 'Biología', 'Biología', 'RECREO', 'C. Sociales', 'C. Sociales']
+      }
+    };
+
+    /* ==========================================================================
+       2. STATE MANAGEMENT & STORAGE ENGINE
+       ========================================================================== */
+
+    let currentUser = null;
+    let userDatabase = JSON.parse(localStorage.getItem('metastudy_db_users') || '{}');
+
+    // Service Worker Registration for PWA / Web Push
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('data:text/javascript;base64,c2VsZi5hZGRFdmVudExpc3RlbmVyKCdwdXNoJywgZXZlbnQgPT4gewogIGNvbnN0IGRhdGEgPSBldmVudC5kYXRhID8gZXZlbnQuZGF0YS5qc29uKCkgOiB7fTsKICBzZWxmLnJlZ2lzdHJhdGlvbi5zaG93Tm90aWZpY2F0aW9uKGRhdGEudGl0bGUgfHwgJ01ldGFTdHVkeScsIHsKICAgIGJvZHk6IGRhdGEubWVzc2FnZSB8fCAnUmVjb3JkYXRvcmlvIGRlIHRhcmVhJywKICAgIGljb246ICdodHRwczovL3BsYWNlaG9sZC5jby8xOTJ4MTkyLzI1NjNlYi9mZmZmZmY/dGV4dD1NUycKICB9KTsKfSk7')
+        .then(reg => console.log('MetaStudy ServiceWorker registrado:', reg.scope))
+        .catch(err => console.log('ServiceWorker error:', err));
+      });
+    }
+
+    // Default structure for a clean new student account
+    function createNewStudentAccount(name, email, passwordHash, course, section) {
+      const userId = 'user_' + Date.now();
+      const newAccount = {
+        id: userId,
+        name: name,
+        email: email,
+        passwordHash: passwordHash,
+        course: course,
+        section: section,
+        createdAt: new Date().toISOString(),
+        tasks: [],         // Clean start: 0 tasks
+        goals: [],         // Clean start: 0 goals
+        studySessions: [], // Clean start: 0 sessions
+        notifications: [], // Clean start: 0 notifications
+        pomoHistory: [],   // Clean start: 0 pomo records
+        pomoTotalMinutes: 0,
+        soundPreferences: {
+          reminder: 'bell',
+          overdue: 'alarm'
+        }
+      };
+      userDatabase[email] = newAccount;
+      saveDatabase();
+      return newAccount;
+    }
+
+    function saveDatabase() {
+      localStorage.setItem('metastudy_db_users', JSON.stringify(userDatabase));
+      if (currentUser && userDatabase[currentUser.email]) {
+        userDatabase[currentUser.email] = currentUser;
+        localStorage.setItem('metastudy_db_users', JSON.stringify(userDatabase));
+      }
+    }
+
+    /* ==========================================================================
+       3. SYSTEM NOTIFICATIONS & AUDIO SYNTHESIZER ENGINE (SECTION 45 CORRECTIONS)
+       ========================================================================== */
+
+    function triggerSystemNotification(title, body, type = 'reminder') {
+      // 1. Play Configured Sound
+      playNotificationSound(type);
+
+      // 2. Add to internal notifications log
+      addNotification(`🔔 ${title}`, body);
+
+      // 3. Fire Browser System Notification (WhatsApp Style)
+      if ('Notification' in window && Notification.permission === 'granted') {
+        try {
+          const options = {
+            body: body,
+            icon: 'https://placehold.co/192x192/2563eb/ffffff?text=MS',
+            badge: 'https://placehold.co/96x96/2563eb/ffffff?text=MS',
+            vibrate: [200, 100, 200],
+            tag: 'metastudy-task-' + Date.now(),
+            renotify: true
+          };
+
+          if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+            navigator.serviceWorker.ready.then(reg => reg.showNotification(title, options));
+          } else {
+            new Notification(title, options);
+          }
+        } catch(e) {
+          console.log('Error al emitir notificación del sistema:', e);
+        }
+      }
+    }
+
+    function playNotificationSound(type = 'reminder') {
+      try {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return;
+        const ctx = new AudioCtx();
+
+        if (type === 'reminder') {
+          // Double Chime Sound
+          const osc1 = ctx.createOscillator();
+          const gain1 = ctx.createGain();
+          osc1.type = 'sine';
+          osc1.frequency.setValueAtTime(523.25, ctx.currentTime); // C5
+          osc1.frequency.exponentialRampToValueAtTime(659.25, ctx.currentTime + 0.15); // E5
+          gain1.gain.setValueAtTime(0.4, ctx.currentTime);
+          gain1.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+          osc1.connect(gain1);
+          gain1.connect(ctx.destination);
+          osc1.start();
+          osc1.stop(ctx.currentTime + 0.3);
+        } else {
+          // Overdue / Alarm Sound
+          const osc2 = ctx.createOscillator();
+          const gain2 = ctx.createGain();
+          osc2.type = 'sawtooth';
+          osc2.frequency.setValueAtTime(880, ctx.currentTime); // A5
+          osc2.frequency.setValueAtTime(440, ctx.currentTime + 0.15); // A4
+          gain2.gain.setValueAtTime(0.5, ctx.currentTime);
+          gain2.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.4);
+          osc2.connect(gain2);
+          gain2.connect(ctx.destination);
+          osc2.start();
+          osc2.stop(ctx.currentTime + 0.4);
+        }
+      } catch(e) {
+        console.log('Audio Context reproducido con restricciones.');
+      }
+    }
+
+    // Task Scheduler Daemon (Runs every 10 seconds to check exact triggers)
+    setInterval(() => {
+      if (!currentUser || !currentUser.tasks) return;
+      const now = new Date();
+
+      currentUser.tasks.forEach(task => {
+        if (task.status === 'COMPLETED') return;
+
+        const dueDateTime = new Date(`${task.dueDate}T${task.dueTime}`);
+        const diffMs = dueDateTime - now;
+        const diffMins = Math.round(diffMs / 60000);
+
+        task.reminders = task.reminders || [];
+
+        // Check configured advance reminders
+        task.reminders.forEach(rem => {
+          if (rem.status === 'PROGRAMMED') {
+            let trigger = false;
+            if (rem.type === '15M' && diffMins <= 15 && diffMins > 0) trigger = true;
+            if (rem.type === '30M' && diffMins <= 30 && diffMins > 0) trigger = true;
+            if (rem.type === '1H' && diffMins <= 60 && diffMins > 0) trigger = true;
+            if (rem.type === '1D' && diffMins <= 1440 && diffMins > 0) trigger = true;
+
+            if (trigger) {
+              rem.status = 'SENT';
+              triggerSystemNotification(
+                'Recordatorio de Tarea',
+                `Materia: ${task.subject}\nTarea: ${task.title}\nVence en breve (${task.dueDate} ${task.dueTime}).`,
+                'reminder'
+              );
+              saveDatabase();
+              refreshDashboardViews();
+            }
+          }
+        });
+
+        // Check exact due time trigger
+        if (!task.dueTriggered && diffMs <= 0 && diffMs > -60000) {
+          task.dueTriggered = true;
+          triggerSystemNotification(
+            '¡Hora de Entrega!',
+            `Llegó la hora de entregar "${task.title}" de ${task.subject}.`,
+            'overdue'
+          );
+          saveDatabase();
+          refreshDashboardViews();
+        }
+
+        // Check overdue state
+        if (diffMs < -60000 && task.status !== 'COMPLETED' && task.status !== 'OVERDUE') {
+          task.status = 'OVERDUE';
+          if (!task.overdueNotified) {
+            task.overdueNotified = true;
+            triggerSystemNotification(
+              '🔴 Tarea Atrasada',
+              `La tarea "${task.title}" de ${task.subject} ha superado su hora de entrega.`,
+              'overdue'
+            );
+          }
+          saveDatabase();
+          refreshDashboardViews();
+        }
+      });
+    }, 10000);
+
+    /* ==========================================================================
+       4. AUTHENTICATION & SESSION CONTROLLERS
+       ========================================================================== */
+
+    function switchAuthTab(tab) {
+      const loginForm = document.getElementById('form-login');
+      const regForm = document.getElementById('form-register');
+      const loginBtn = document.getElementById('tab-login-btn');
+      const regBtn = document.getElementById('tab-register-btn');
+
+      if (tab === 'login') {
+        loginForm.classList.remove('hidden');
+        regForm.classList.add('hidden');
+        loginBtn.className = "flex-1 py-2 text-xs font-bold rounded-lg transition-all bg-brand-600 text-white shadow-md";
+        regBtn.className = "flex-1 py-2 text-xs font-bold rounded-lg transition-all text-slate-400 hover:text-white";
+      } else {
+        loginForm.classList.add('hidden');
+        regForm.classList.remove('hidden');
+        regBtn.className = "flex-1 py-2 text-xs font-bold rounded-lg transition-all bg-brand-600 text-white shadow-md";
+        loginBtn.className = "flex-1 py-2 text-xs font-bold rounded-lg transition-all text-slate-400 hover:text-white";
+      }
+    }
+
+    function handleLogin(e) {
+      e.preventDefault();
+      const email = document.getElementById('login-email').value.trim();
+      const pass = document.getElementById('login-password').value;
+
+      if (userDatabase[email] && userDatabase[email].passwordHash === pass) {
+        currentUser = userDatabase[email];
+        showToast('¡Bienvenido de nuevo, ' + currentUser.name + '!', 'success');
+        launchDashboard();
+      } else {
+        showToast('Credenciales incorrectas. Verifica tu correo y contraseña.', 'error');
+      }
+    }
+
+    function handleRegister(e) {
+      e.preventDefault();
+      const name = document.getElementById('reg-name').value.trim();
+      const email = document.getElementById('reg-email').value.trim();
+      const pass = document.getElementById('reg-password').value;
+      const course = document.getElementById('reg-course').value;
+      const section = document.getElementById('reg-section').value;
+
+      if (userDatabase[email]) {
+        showToast('El correo ya está registrado en MetaStudy.', 'error');
+        return;
+      }
+
+      currentUser = createNewStudentAccount(name, email, pass, course, section);
+      showToast('¡Cuenta creada con éxito para ' + course + ' ' + section + '!', 'success');
+      launchDashboard();
+    }
+
+    function loadDemoAccount() {
+      const demoEmail = 'demo@metastudy.edu';
+      if (!userDatabase[demoEmail]) {
+        currentUser = createNewStudentAccount('Estudiante Demo', demoEmail, '123456', 'Sexto', 'C');
+      } else {
+        currentUser = userDatabase[demoEmail];
+      }
+      showToast('Sesión Demo iniciada en Sexto C', 'info');
+      launchDashboard();
+    }
+
+    function handleLogout() {
+      currentUser = null;
+      document.getElementById('view-auth').classList.remove('hidden');
+      document.getElementById('view-dashboard').classList.add('hidden');
+      showToast('Has cerrado sesión correctamente.', 'info');
+    }
+
+    function launchDashboard() {
+      document.getElementById('view-auth').classList.add('hidden');
+      document.getElementById('view-dashboard').classList.remove('hidden');
+
+      // Sync User Header info
+      document.getElementById('user-badge-class').innerText = `${currentUser.course} ${currentUser.section}`;
+      document.getElementById('sidebar-user-name').innerText = currentUser.name;
+      document.getElementById('home-welcome-name').innerText = `Hola, ${currentUser.name} 👋`;
+      document.getElementById('home-welcome-grade').innerText = `${currentUser.course} de Secundaria ${currentUser.section} — Horario Configurado`;
+
+      // Render Schedule, Dashboard & Navigation
+      renderOfficialSchedule();
+      refreshDashboardViews();
+      updatePermissionStatusDisplay();
+      navTo('home');
+    }
+
+    /* ==========================================================================
+       5. NAVIGATION & VIEW SWITCHER
+       ========================================================================== */
+
+    function navTo(sectionKey) {
+      const sections = ['home', 'schedule', 'tasks', 'study', 'goals', 'calendar', 'pomodoro', 'stats', 'notifications', 'profile', 'settings', 'admin'];
+      sections.forEach(s => {
+        const el = document.getElementById('section-' + s);
+        if (el) el.classList.add('hidden');
+        const navEl = document.getElementById('nav-' + s);
+        if (navEl) navEl.classList.remove('bg-slate-800', 'text-white', 'font-bold');
+      });
+
+      const target = document.getElementById('section-' + sectionKey);
+      if (target) target.classList.remove('hidden');
+
+      const targetNav = document.getElementById('nav-' + sectionKey);
+      if (targetNav) targetNav.classList.add('bg-slate-800', 'text-white', 'font-bold');
+
+      // Refresh specific section contents
+      if (sectionKey === 'tasks') renderTasksPage();
+      if (sectionKey === 'goals') renderGoalsPage();
+      if (sectionKey === 'pomodoro') setupPomodoroSubjectOptions();
+      if (sectionKey === 'stats') renderStatsPage();
+      if (sectionKey === 'notifications') renderNotificationsPage();
+      if (sectionKey === 'calendar') renderCalendarView();
+      if (sectionKey === 'admin') renderAdminScheduleView();
+      if (sectionKey === 'settings') updatePermissionStatusDisplay();
+      if (sectionKey === 'profile') {
+        document.getElementById('profile-display-name').innerText = currentUser.name;
+        document.getElementById('profile-display-email').innerText = currentUser.email;
+        document.getElementById('profile-display-grade').innerText = `${currentUser.course} ${currentUser.section}`;
+      }
+    }
+
+    /* ==========================================================================
+       6. SCHEDULE RENDERER & HELPER LOGIC
+       ========================================================================== */
+
+    function getStudentScheduleKey(course, section) {
+      return `${course}_${section}`;
+    }
+
+    function getStudentSubjects() {
+      if (!currentUser) return ALLOWED_SUBJECTS;
+      const key = getStudentScheduleKey(currentUser.course, currentUser.section);
+      const sched = OFFICIAL_SCHEDULES[key];
+      if (!sched) return ALLOWED_SUBJECTS;
+
+      const set = new Set();
+      Object.values(sched).forEach(dayList => {
+        dayList.forEach(item => {
+          if (item !== 'RECREO' && item !== '-' && ALLOWED_SUBJECTS.includes(item)) {
+            set.add(item);
+          }
+        });
+      });
+      return Array.from(set);
+    }
+
+    function renderOfficialSchedule() {
+      const tbody = document.getElementById('schedule-matrix-body');
+      tbody.innerHTML = '';
+      const key = getStudentScheduleKey(currentUser.course, currentUser.section);
+      const schedule = OFFICIAL_SCHEDULES[key] || OFFICIAL_SCHEDULES['Sexto_C'];
+
+      TIME_BLOCKS.forEach((block, index) => {
+        const tr = document.createElement('tr');
+        if (block.type === 'RECESS') {
+          tr.className = "bg-amber-950/20 text-amber-400 font-bold border-y border-amber-500/20";
+        } else {
+          tr.className = "hover:bg-slate-800/40 transition-colors";
+        }
+
+        let html = `<td class="p-3 text-center border-r border-slate-800">
+                      <div class="font-bold text-white">${block.label}</div>
+                      <div class="text-[10px] text-slate-400 font-mono">${block.start} - ${block.end}</div>
+                    </td>`;
+
+        DAYS.forEach(day => {
+          const dayList = schedule[day] || [];
+          const subject = dayList[index] || '-';
+          if (block.type === 'RECESS') {
+            html += `<td class="p-3 text-center text-[11px] tracking-widest uppercase font-black text-amber-500/80">RECREO</td>`;
+          } else {
+            const isFree = subject === '-';
+            html += `<td class="p-3">
+                      <span class="inline-block px-2.5 py-1 rounded-lg text-xs font-semibold ${isFree ? 'text-slate-600 bg-slate-950' : 'bg-brand-900/40 text-brand-300 border border-brand-500/20'}">
+                        ${subject}
+                      </span>
+                    </td>`;
+          }
+        });
+
+        tr.innerHTML = html;
+        tbody.appendChild(tr);
+      });
+    }
+
+    /* ==========================================================================
+       7. TASKS CONTROLLER & MODAL (WITH ADVANCED REMINDERS)
+       ========================================================================== */
+
+    function openModalCreateTask() {
+      const subjects = getStudentSubjects();
+      let optionsHtml = subjects.map(s => `<option value="${s}">${s}</option>`).join('');
+
+      const content = `
+        <div class="flex items-center justify-between mb-4 border-b border-slate-800 pb-3">
+          <h3 class="font-bold text-base text-white">+ Crear Nueva Tarea Escolar</h3>
+          <button onclick="closeModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+        </div>
+        <form onsubmit="saveTask(event)" class="space-y-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Título de la Tarea</label>
+            <input type="text" id="task-title" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white" placeholder="Ej. Ejercicios de Geometría">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Materia Exclusiva del Horario</label>
+            <select id="task-subject" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white">
+              ${optionsHtml}
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Descripción</label>
+            <textarea id="task-desc" rows="2" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white" placeholder="Detalles de los ejercicios..."></textarea>
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-semibold text-slate-300 mb-1">Fecha de Entrega</label>
+              <input type="date" id="task-date" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-300 mb-1">Hora de Entrega</label>
+              <input type="time" id="task-time" required value="18:00" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white">
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-semibold text-slate-300 mb-1">Prioridad</label>
+              <select id="task-priority" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white">
+                <option value="Baja">Baja</option>
+                <option value="Media" selected>Media</option>
+                <option value="Alta">Alta</option>
+                <option value="Urgente">Urgente</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-300 mb-1">Avisos y Recordatorios</label>
+              <select id="task-reminder" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white">
+                <option value="OFF">Sin aviso previo</option>
+                <option value="15M" selected>15 min antes</option>
+                <option value="30M">30 min antes</option>
+                <option value="1H">1 hora antes</option>
+                <option value="1D">1 día antes</option>
+              </select>
+            </div>
+          </div>
+          <div class="flex justify-end gap-2 pt-3">
+            <button type="button" onclick="closeModal()" class="px-4 py-2 bg-slate-800 text-slate-300 text-xs font-bold rounded-xl">Cancelar</button>
+            <button type="submit" class="px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold rounded-xl">Guardar Tarea</button>
+          </div>
+        </form>
+      `;
+      showModal(content);
+    }
+
+    function saveTask(e) {
+      e.preventDefault();
+      const remChoice = document.getElementById('task-reminder').value;
+      const remindersList = remChoice !== 'OFF' ? [{ type: remChoice, status: 'PROGRAMMED' }] : [];
+
+      const newTask = {
+        id: 'task_' + Date.now(),
+        title: document.getElementById('task-title').value.trim(),
+        subject: document.getElementById('task-subject').value,
+        desc: document.getElementById('task-desc').value.trim(),
+        dueDate: document.getElementById('task-date').value,
+        dueTime: document.getElementById('task-time').value,
+        priority: document.getElementById('task-priority').value,
+        reminders: remindersList,
+        status: 'PENDING',
+        dueTriggered: false,
+        overdueNotified: false,
+        createdAt: new Date().toISOString()
+      };
+
+      currentUser.tasks.push(newTask);
+      
+      // System alert on creation
+      triggerSystemNotification('Tarea Programada', `Se programaron recordatorios para ${newTask.title} (${newTask.subject}).`);
+      
+      saveDatabase();
+      closeModal();
+      showToast('Tarea creada y avisos de notificación activos.', 'success');
+      refreshDashboardViews();
+    }
+
+    function toggleTaskComplete(taskId) {
+      const task = currentUser.tasks.find(t => t.id === taskId);
+      if (task) {
+        task.status = task.status === 'COMPLETED' ? 'PENDING' : 'COMPLETED';
+        saveDatabase();
+        showToast(`Estado de la tarea actualizado a: ${task.status}`, 'info');
+        refreshDashboardViews();
+      }
+    }
+
+    function deleteTask(taskId) {
+      if (confirm('¿Eliminar esta tarea permanentemente?')) {
+        currentUser.tasks = currentUser.tasks.filter(t => t.id !== taskId);
+        saveDatabase();
+        showToast('Tarea eliminada.', 'info');
+        refreshDashboardViews();
+      }
+    }
+
+    function renderTasksPage() {
+      const grid = document.getElementById('tasks-full-grid');
+      const subjectFilter = document.getElementById('task-filter-subject');
+      const searchInput = document.getElementById('task-search-input').value.toLowerCase();
+      const statusFilter = document.getElementById('task-filter-status').value;
+
+      // Populate subject dropdown options if empty
+      if (subjectFilter.options.length <= 1) {
+        const subjects = getStudentSubjects();
+        subjects.forEach(s => {
+          const opt = document.createElement('option');
+          opt.value = s;
+          opt.innerText = s;
+          subjectFilter.appendChild(opt);
+        });
+      }
+
+      const selectedSub = subjectFilter.value;
+      let tasks = currentUser.tasks || [];
+
+      // Filter tasks
+      tasks = tasks.filter(t => {
+        const matchSearch = t.title.toLowerCase().includes(searchInput) || t.desc.toLowerCase().includes(searchInput);
+        const matchSub = selectedSub === 'ALL' || t.subject === selectedSub;
+        const matchStatus = statusFilter === 'ALL' || t.status === statusFilter;
+        return matchSearch && matchSub && matchStatus;
+      });
+
+      if (tasks.length === 0) {
+        grid.innerHTML = `
+          <div class="col-span-full py-12 text-center bg-slate-900 border border-slate-800 rounded-2xl p-6">
+            <div class="w-12 h-12 bg-slate-800 text-slate-500 rounded-full flex items-center justify-center mx-auto mb-3">
+              <i class="fa-solid fa-list-check text-xl"></i>
+            </div>
+            <p class="font-bold text-white text-sm">📚 Todavía no tienes tareas aquí</p>
+            <p class="text-xs text-slate-400 mt-1">Agrega tu primera tarea escolar para comenzar el seguimiento.</p>
+            <button onclick="openModalCreateTask()" class="mt-4 px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white font-bold rounded-xl text-xs">+ Crear tarea</button>
+          </div>
+        `;
+        return;
+      }
+
+      grid.innerHTML = tasks.map(t => {
+        const isCompleted = t.status === 'COMPLETED';
+        const isOverdue = t.status === 'OVERDUE';
+        return `
+          <div class="bg-slate-900 border ${isOverdue ? 'border-rose-500 bg-rose-950/20' : isCompleted ? 'border-emerald-500/30 bg-emerald-950/10' : 'border-slate-800'} rounded-2xl p-4 flex flex-col justify-between space-y-3">
+            <div>
+              <div class="flex items-center justify-between mb-2">
+                <span class="px-2 py-0.5 bg-brand-900/60 text-brand-300 text-[10px] font-bold rounded-md">${t.subject}</span>
+                <span class="px-2 py-0.5 text-[10px] font-bold rounded-md ${isOverdue ? 'bg-rose-600 text-white animate-pulse' : t.priority === 'Urgente' ? 'bg-rose-500/20 text-rose-400' : 'bg-slate-800 text-slate-400'}">${isOverdue ? '🔴 ATRASADA' : t.priority}</span>
+              </div>
+              <h4 class="font-bold text-sm text-white ${isCompleted ? 'line-through text-slate-400' : ''}">${t.title}</h4>
+              <p class="text-xs text-slate-400 mt-1 line-clamp-2">${t.desc || 'Sin descripción.'}</p>
+            </div>
+            <div class="pt-2 border-t border-slate-800/80 flex items-center justify-between text-xs">
+              <div class="text-[11px] ${isOverdue ? 'text-rose-400 font-bold' : 'text-slate-400'} font-mono">
+                <i class="fa-solid fa-clock mr-1"></i>${t.dueDate} ${t.dueTime}
+              </div>
+              <div class="flex items-center gap-1">
+                <button onclick="toggleTaskComplete('${t.id}')" class="p-1.5 ${isCompleted ? 'bg-emerald-600 text-white' : 'bg-slate-800 text-slate-300'} hover:opacity-80 rounded-lg">
+                  <i class="fa-solid fa-check"></i>
+                </button>
+                <button onclick="deleteTask('${t.id}')" class="p-1.5 bg-slate-800 hover:bg-rose-600/20 text-slate-400 hover:text-rose-400 rounded-lg">
+                  <i class="fa-solid fa-trash"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    /* ==========================================================================
+       8. GOALS CONTROLLER & MODAL
+       ========================================================================== */
+
+    function openModalCreateGoal() {
+      const subjects = getStudentSubjects();
+      let optionsHtml = subjects.map(s => `<option value="${s}">${s}</option>`).join('');
+
+      const content = `
+        <div class="flex items-center justify-between mb-4 border-b border-slate-800 pb-3">
+          <h3 class="font-bold text-base text-white">+ Crear Objetivo Académico</h3>
+          <button onclick="closeModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+        </div>
+        <form onsubmit="saveGoal(event)" class="space-y-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Título del Objetivo</label>
+            <input type="text" id="goal-title" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white" placeholder="Ej. Aprobar Examen Bimestral con 90+">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Materia Relevante</label>
+            <select id="goal-subject" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white">
+              ${optionsHtml}
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Fecha Límite</label>
+            <input type="date" id="goal-target-date" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white">
+          </div>
+          <div class="flex justify-end gap-2 pt-3">
+            <button type="button" onclick="closeModal()" class="px-4 py-2 bg-slate-800 text-slate-300 text-xs font-bold rounded-xl">Cancelar</button>
+            <button type="submit" class="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold rounded-xl">Guardar Objetivo</button>
+          </div>
+        </form>
+      `;
+      showModal(content);
+    }
+
+    function saveGoal(e) {
+      e.preventDefault();
+      const newGoal = {
+        id: 'goal_' + Date.now(),
+        title: document.getElementById('goal-title').value.trim(),
+        subject: document.getElementById('goal-subject').value,
+        targetDate: document.getElementById('goal-target-date').value,
+        completed: false,
+        createdAt: new Date().toISOString()
+      };
+
+      currentUser.goals.push(newGoal);
+      saveDatabase();
+      closeModal();
+      showToast('Objetivo académico registrado.', 'success');
+      refreshDashboardViews();
+    }
+
+    function toggleGoalComplete(goalId) {
+      const goal = currentUser.goals.find(g => g.id === goalId);
+      if (goal) {
+        goal.completed = !goal.completed;
+        saveDatabase();
+        showToast(goal.completed ? '🎯 ¡Objetivo Alcanzado!' : 'Objetivo reactivado', 'success');
+        refreshDashboardViews();
+      }
+    }
+
+    function renderGoalsPage() {
+      const grid = document.getElementById('goals-full-grid');
+      const goals = currentUser.goals || [];
+
+      if (goals.length === 0) {
+        grid.innerHTML = `
+          <div class="col-span-full py-12 text-center bg-slate-900 border border-slate-800 rounded-2xl p-6">
+            <p class="font-bold text-white text-sm">🎯 Todavía no has creado objetivos</p>
+            <p class="text-xs text-slate-400 mt-1">Escribe metas para tus materias de secundaria.</p>
+            <button onclick="openModalCreateGoal()" class="mt-4 px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-xl text-xs">+ Crear objetivo</button>
+          </div>
+        `;
+        return;
+      }
+
+      grid.innerHTML = goals.map(g => `
+        <div class="bg-slate-900 border ${g.completed ? 'border-rose-500/40 bg-rose-950/10' : 'border-slate-800'} rounded-2xl p-4 flex flex-col justify-between space-y-3">
+          <div>
+            <span class="px-2 py-0.5 bg-rose-950 text-rose-300 text-[10px] font-bold rounded-md">${g.subject}</span>
+            <h4 class="font-bold text-sm text-white mt-2 ${g.completed ? 'line-through text-slate-400' : ''}">${g.title}</h4>
+          </div>
+          <div class="pt-2 border-t border-slate-800 flex items-center justify-between text-xs">
+            <span class="text-[10px] text-slate-400 font-mono">Meta: ${g.targetDate}</span>
+            <button onclick="toggleGoalComplete('${g.id}')" class="px-3 py-1 ${g.completed ? 'bg-rose-600 text-white' : 'bg-slate-800 text-slate-300'} font-bold rounded-lg text-xs">
+              ${g.completed ? 'Alcanzado ✓' : 'Marcar Alcanzado'}
+            </button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    /* ==========================================================================
+       9. REFACTORED PRECISION POMODORO TIMER ENGINE
+       ========================================================================== */
+
+    let pomoState = {
+      mode: 'WORK', // WORK, SHORT, LONG
+      durationSec: 25 * 60,
+      timeRemainingSec: 25 * 60,
+      isRunning: false,
+      intervalId: null,
+      targetEndTime: null,
+      subject: ''
+    };
+
+    function setPomodoroMode(mode) {
+      if (pomoState.isRunning) {
+        if (!confirm('Hay un ciclo Pomodoro en marcha. ¿Deseas cambiar de modo?')) return;
+        pausePomodoro();
+      }
+
+      pomoState.mode = mode;
+      if (mode === 'WORK') pomoState.durationSec = 25 * 60;
+      if (mode === 'SHORT') pomoState.durationSec = 5 * 60;
+      if (mode === 'LONG') pomoState.durationSec = 15 * 60;
+
+      pomoState.timeRemainingSec = pomoState.durationSec;
+      updatePomodoroDisplay();
+
+      // UI Tab highlights
+      document.getElementById('pomo-mode-work').className = mode === 'WORK' ? "px-4 py-2 text-xs font-bold rounded-xl bg-amber-600 text-white transition-all" : "px-4 py-2 text-xs font-bold rounded-xl text-slate-400 hover:text-white transition-all";
+      document.getElementById('pomo-mode-short').className = mode === 'SHORT' ? "px-4 py-2 text-xs font-bold rounded-xl bg-amber-600 text-white transition-all" : "px-4 py-2 text-xs font-bold rounded-xl text-slate-400 hover:text-white transition-all";
+      document.getElementById('pomo-mode-long').className = mode === 'LONG' ? "px-4 py-2 text-xs font-bold rounded-xl bg-amber-600 text-white transition-all" : "px-4 py-2 text-xs font-bold rounded-xl text-slate-400 hover:text-white transition-all";
+    }
+
+    function setupPomodoroSubjectOptions() {
+      const select = document.getElementById('pomo-subject-select');
+      const subjects = getStudentSubjects();
+      select.innerHTML = subjects.map(s => `<option value="${s}">${s}</option>`).join('');
+    }
+
+    function startPomodoro() {
+      if (pomoState.isRunning) return; // Prevent double intervals
+      pomoState.isRunning = true;
+      pomoState.subject = document.getElementById('pomo-subject-select').value || 'Estudio General';
+      
+      pomoState.targetEndTime = Date.now() + (pomoState.timeRemainingSec * 1000);
+
+      document.getElementById('btn-pomo-start').classList.add('hidden');
+      document.getElementById('btn-pomo-pause').classList.remove('hidden');
+      document.getElementById('pomodoro-status-label').innerText = 'Estado: En Marcha';
+
+      pomoState.intervalId = setInterval(() => {
+        const now = Date.now();
+        pomoState.timeRemainingSec = Math.max(0, Math.round((pomoState.targetEndTime - now) / 1000));
+        updatePomodoroDisplay();
+
+        if (pomoState.timeRemainingSec <= 0) {
+          completePomodoroSession();
+        }
+      }, 500);
+    }
+
+    function pausePomodoro() {
+      if (!pomoState.isRunning) return;
+      pomoState.isRunning = false;
+      clearInterval(pomoState.intervalId);
+      document.getElementById('btn-pomo-start').classList.remove('hidden');
+      document.getElementById('btn-pomo-pause').classList.add('hidden');
+      document.getElementById('pomodoro-status-label').innerText = 'Estado: Pausado';
+    }
+
+    function stopPomodoro() {
+      pausePomodoro();
+      pomoState.timeRemainingSec = pomoState.durationSec;
+      updatePomodoroDisplay();
+      document.getElementById('pomodoro-status-label').innerText = 'Estado: Preparado';
+    }
+
+    function completePomodoroSession() {
+      pausePomodoro();
+      triggerSystemNotification('⏱️ Sesión Pomodoro Finalizada', `¡Has completado tu ciclo de estudio en ${pomoState.subject}!`);
+
+      if (pomoState.mode === 'WORK') {
+        const minutesCompleted = Math.round(pomoState.durationSec / 60);
+        currentUser.pomoTotalMinutes = (currentUser.pomoTotalMinutes || 0) + minutesCompleted;
+        currentUser.pomoHistory.push({
+          id: 'pomo_' + Date.now(),
+          date: new Date().toLocaleDateString(),
+          time: new Date().toLocaleTimeString(),
+          subject: pomoState.subject,
+          minutes: minutesCompleted,
+          status: 'COMPLETED'
+        });
+        saveDatabase();
+        showToast('¡Sesión Pomodoro Completada y Guardada!', 'success');
+        refreshDashboardViews();
+      }
+
+      pomoState.timeRemainingSec = pomoState.durationSec;
+      updatePomodoroDisplay();
+    }
+
+    function updatePomodoroDisplay() {
+      const mins = Math.floor(pomoState.timeRemainingSec / 60);
+      const secs = pomoState.timeRemainingSec % 60;
+      const str = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+      document.getElementById('pomodoro-timer-display').innerText = str;
+    }
+
+    /* ==========================================================================
+       10. STUDY PLANNER PROPOSAL GENERATOR
+       ========================================================================== */
+
+    function generateStudyScheduleProposal() {
+      const list = document.getElementById('study-sessions-list');
+      const tasks = currentUser.tasks.filter(t => t.status !== 'COMPLETED');
+
+      if (tasks.length === 0) {
+        list.innerHTML = `<p class="text-xs text-slate-400 italic">No hay tareas pendientes. Agrega tareas para generar una propuesta de estudio inteligente.</p>`;
+        return;
+      }
+
+      list.innerHTML = tasks.map(t => `
+        <div class="p-3 bg-slate-950 border border-slate-800 rounded-xl flex items-center justify-between">
+          <div>
+            <span class="text-[10px] bg-indigo-950 text-indigo-300 font-bold px-2 py-0.5 rounded-md">${t.subject}</span>
+            <h5 class="text-xs font-bold text-white mt-1">Sesión Recomendada: ${t.title}</h5>
+            <p class="text-[11px] text-slate-400">Horario fuera de clase: 18:30 - 19:15 (45 min)</p>
+          </div>
+          <button onclick="showToast('Sesión agendada para el horario libre', 'success')" class="px-3 py-1 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-lg">Aceptar</button>
+        </div>
+      `).join('');
+    }
+
+    /* ==========================================================================
+       11. STATISTICAL & DASHBOARD REFRESH CONTROLLER
+       ========================================================================== */
+
+    function refreshDashboardViews() {
+      if (!currentUser) return;
+
+      const tasks = currentUser.tasks || [];
+      const goals = currentUser.goals || [];
+      const pomoHistory = currentUser.pomoHistory || [];
+
+      // Calculate totals
+      const completedTasksCount = tasks.filter(t => t.status === 'COMPLETED').length;
+      const hoursStudied = ((currentUser.pomoTotalMinutes || 0) / 60).toFixed(1);
+      const goalsAchievedCount = goals.filter(g => g.completed).length;
+      const goalsPct = goals.length > 0 ? Math.round((goalsAchievedCount / goals.length) * 100) : 0;
+
+      // Update Quick Stats
+      document.getElementById('dash-stat-tasks').innerText = completedTasksCount;
+      document.getElementById('dash-stat-hours').innerText = `${hoursStudied}h`;
+      document.getElementById('dash-stat-goals').innerText = `${goalsPct}%`;
+      document.getElementById('dash-stat-sessions').innerText = pomoHistory.length;
+
+      // Dashboard Today's Classes render
+      const todayName = DAYS[new Date().getDay() - 1] || 'Lunes';
+      document.getElementById('dash-today-name').innerText = todayName;
+      const schedKey = getStudentScheduleKey(currentUser.course, currentUser.section);
+      const scheduleToday = (OFFICIAL_SCHEDULES[schedKey] || OFFICIAL_SCHEDULES['Sexto_C'])[todayName] || [];
+
+      const todayClassesContainer = document.getElementById('dash-today-classes');
+      todayClassesContainer.innerHTML = TIME_BLOCKS.map((block, idx) => {
+        if (block.type === 'RECESS') return '';
+        const subj = scheduleToday[idx] || '-';
+        return `
+          <div class="p-2.5 bg-slate-950 border border-slate-800/80 rounded-xl flex items-center justify-between">
+            <div>
+              <span class="text-[10px] text-slate-500 font-mono">${block.start} - ${block.end}</span>
+              <p class="text-xs font-bold text-white">${subj}</p>
+            </div>
+            <span class="text-[10px] px-2 py-0.5 bg-brand-900/40 text-brand-400 font-bold rounded-md">Bloque</span>
+          </div>
+        `;
+      }).join('');
+
+      // Dashboard Pending Tasks List
+      const pendingTasksList = document.getElementById('dash-tasks-list');
+      const pendingTasks = tasks.filter(t => t.status !== 'COMPLETED');
+      if (pendingTasks.length === 0) {
+        pendingTasksList.innerHTML = `
+          <div class="py-6 text-center text-xs text-slate-500">
+            Todavía no tienes tareas pendientes.
+          </div>
+        `;
+      } else {
+        pendingTasksList.innerHTML = pendingTasks.slice(0, 4).map(t => `
+          <div class="p-3 bg-slate-950 border border-slate-800 rounded-xl flex items-center justify-between">
+            <div>
+              <span class="text-[10px] bg-brand-900/50 text-brand-300 font-bold px-2 py-0.5 rounded-md">${t.subject}</span>
+              <h5 class="text-xs font-bold text-white mt-1">${t.title}</h5>
+            </div>
+            <button onclick="toggleTaskComplete('${t.id}')" class="px-2.5 py-1 bg-slate-800 text-slate-300 hover:text-white rounded-lg text-xs font-bold">Completar</button>
+          </div>
+        `).join('');
+      }
+
+      // Dashboard Goals List
+      const dashGoalsList = document.getElementById('dash-goals-list');
+      if (goals.length === 0) {
+        dashGoalsList.innerHTML = `<div class="py-4 text-center text-xs text-slate-500">Todavía no has creado objetivos.</div>`;
+      } else {
+        dashGoalsList.innerHTML = goals.slice(0, 3).map(g => `
+          <div class="p-2.5 bg-slate-950 border border-slate-800 rounded-xl">
+            <div class="flex items-center justify-between text-xs mb-1">
+              <span class="font-bold text-white">${g.title}</span>
+              <span class="text-[10px] text-slate-400">${g.subject}</span>
+            </div>
+            <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+              <div class="bg-rose-500 h-full" style="width: ${g.completed ? '100%' : '20%'}"></div>
+            </div>
+          </div>
+        `).join('');
+      }
+    }
+
+    function renderStatsPage() {
+      document.getElementById('stats-total-pomo-min').innerText = `${currentUser.pomoTotalMinutes || 0} min`;
+      const completedTasks = (currentUser.tasks || []).filter(t => t.status === 'COMPLETED').length;
+      document.getElementById('stats-total-tasks-done').innerText = completedTasks;
+
+      const goals = currentUser.goals || [];
+      const goalsAchievedCount = goals.filter(g => g.completed).length;
+      const goalsPct = goals.length > 0 ? Math.round((goalsAchievedCount / goals.length) * 100) : 0;
+      document.getElementById('stats-goals-pct').innerText = `${goalsPct}%`;
+
+      const tbody = document.getElementById('stats-pomo-history-tbody');
+      const history = currentUser.pomoHistory || [];
+      if (history.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="4" class="p-4 text-center text-slate-500">Sin sesiones registradas aún.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = history.map(h => `
+        <tr class="hover:bg-slate-800/40">
+          <td class="p-2 font-mono text-slate-400">${h.date} ${h.time}</td>
+          <td class="p-2 font-bold text-white">${h.subject}</td>
+          <td class="p-2 text-amber-400 font-bold">${h.minutes} min</td>
+          <td class="p-2"><span class="px-2 py-0.5 bg-emerald-950 text-emerald-400 font-bold text-[10px] rounded-md">${h.status}</span></td>
+        </tr>
+      `).join('');
+    }
+
+    /* ==========================================================================
+       12. NOTIFICATIONS CONTROLLER & SETTINGS
+       ========================================================================== */
+
+    function addNotification(title, message) {
+      if (!currentUser) return;
+      const notif = {
+        id: 'notif_' + Date.now(),
+        title: title,
+        message: message,
+        read: false,
+        time: new Date().toLocaleTimeString()
+      };
+      currentUser.notifications = currentUser.notifications || [];
+      currentUser.notifications.unshift(notif);
+      saveDatabase();
+      updateUnreadNotifBadge();
+    }
+
+    function updateUnreadNotifBadge() {
+      const badge = document.getElementById('unread-notif-badge');
+      const unreadCount = (currentUser.notifications || []).filter(n => !n.read).length;
+      if (unreadCount > 0) {
+        badge.innerText = unreadCount;
+        badge.classList.remove('hidden');
+      } else {
+        badge.classList.add('hidden');
+      }
+    }
+
+    function renderNotificationsPage() {
+      const list = document.getElementById('notifications-list');
+      const notifs = currentUser.notifications || [];
+
+      if (notifs.length === 0) {
+        list.innerHTML = `<div class="p-6 text-center text-xs text-slate-500 bg-slate-900 rounded-2xl">No tienes notificaciones recibidas.</div>`;
+        return;
+      }
+
+      list.innerHTML = notifs.map(n => `
+        <div class="p-4 bg-slate-900 border ${n.read ? 'border-slate-800' : 'border-brand-500/40 bg-brand-950/10'} rounded-2xl flex items-start justify-between">
+          <div>
+            <h4 class="font-bold text-sm text-white">${n.title}</h4>
+            <p class="text-xs text-slate-300 mt-1 whitespace-pre-line">${n.message}</p>
+            <span class="text-[10px] text-slate-500 font-mono mt-2 block">${n.time}</span>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function markAllNotificationsAsRead() {
+      if (!currentUser) return;
+      (currentUser.notifications || []).forEach(n => n.read = true);
+      saveDatabase();
+      updateUnreadNotifBadge();
+      renderNotificationsPage();
+      showToast('Notificaciones marcadas como leídas', 'info');
+    }
+
+    function requestBrowserNotificationPermission() {
+      if (!('Notification' in window)) {
+        showToast('Este dispositivo o navegador no soporta Notificaciones del Sistema.', 'error');
+        return;
+      }
+      Notification.requestPermission().then(permission => {
+        updatePermissionStatusDisplay();
+        if (permission === 'granted') {
+          showToast('¡Permiso de Notificaciones Reales Activado!', 'success');
+          triggerSystemNotification('MetaStudy Conectado', 'Recibirás avisos reales en la barra de tu dispositivo.', 'reminder');
+        } else {
+          showToast('Permiso de notificaciones denegado.', 'error');
+        }
+      });
+    }
+
+    function updatePermissionStatusDisplay() {
+      const statusEl = document.getElementById('notification-permission-status');
+      if (!statusEl) return;
+      if (!('Notification' in window)) {
+        statusEl.innerText = 'Estado: No compatible en este navegador';
+        statusEl.className = 'text-xs text-rose-400 font-bold';
+      } else if (Notification.permission === 'granted') {
+        statusEl.innerText = 'Estado: ✅ Activadas correctamente (WhatsApp Style Active)';
+        statusEl.className = 'text-xs text-emerald-400 font-bold';
+      } else if (Notification.permission === 'denied') {
+        statusEl.innerText = 'Estado: ❌ Permiso denegado por el dispositivo';
+        statusEl.className = 'text-xs text-rose-400 font-bold';
+      } else {
+        statusEl.innerText = 'Estado: ⚠️ Pendiente de autorización';
+        statusEl.className = 'text-xs text-amber-400 font-bold';
+      }
+    }
+
+    function saveSoundPreferences() {
+      if (!currentUser) return;
+      currentUser.soundPreferences = {
+        reminder: document.getElementById('sound-pref-reminder').value,
+        overdue: document.getElementById('sound-pref-overdue').value
+      };
+      saveDatabase();
+      showToast('Preferencias de tono guardadas.', 'info');
+    }
+
+    /* ==========================================================================
+       13. CALENDAR GENERATOR
+       ========================================================================== */
+
+    function renderCalendarView() {
+      const grid = document.getElementById('calendar-grid-view');
+      const daysOfWeek = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+      
+      let html = daysOfWeek.map(d => `<div class="font-bold text-slate-400 p-2 border-b border-slate-800">${d}</div>`).join('');
+
+      for (let i = 1; i <= 31; i++) {
+        const hasTask = (currentUser.tasks || []).some(t => new Date(t.dueDate).getDate() === i);
+        html += `
+          <div class="p-3 bg-slate-950 border border-slate-800 rounded-xl h-16 flex flex-col justify-between hover:border-slate-700">
+            <span class="font-bold text-slate-300 text-xs">${i}</span>
+            ${hasTask ? '<span class="w-2 h-2 bg-brand-500 rounded-full mx-auto"></span>' : ''}
+          </div>
+        `;
+      }
+      grid.innerHTML = html;
+    }
+
+    /* ==========================================================================
+       14. ADMIN PANEL CONTROLLER
+       ========================================================================== */
+
+    function renderAdminScheduleView() {
+      const course = document.getElementById('admin-course-select').value;
+      const section = document.getElementById('admin-section-select').value;
+      const key = getStudentScheduleKey(course, section);
+      const sched = OFFICIAL_SCHEDULES[key];
+
+      const container = document.getElementById('admin-schedule-preview');
+      if (!sched) {
+        container.innerHTML = `<p class="text-xs text-rose-400">Error: Horario no encontrado para ${course} ${section}.</p>`;
+        return;
+      }
+
+      let html = `<p class="text-xs font-bold text-slate-300 mb-2">Matriz Oficial Configurada para ${course} ${section}:</p>
+                  <table class="w-full text-xs text-left text-slate-300 border border-slate-800">
+                    <thead class="bg-slate-950 text-slate-400">
+                      <tr><th class="p-2">Día</th><th class="p-2">Distribución de Materias por Bloque</th></tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-800">`;
+
+      Object.keys(sched).forEach(day => {
+        html += `<tr>
+                  <td class="p-2 font-bold text-white">${day}</td>
+                  <td class="p-2 font-mono text-brand-300">${sched[day].join(' | ')}</td>
+                </tr>`;
+      });
+
+      html += `</tbody></table>`;
+      container.innerHTML = html;
+    }
+
+    function updateStudentGradeSection() {
+      const newCourse = document.getElementById('profile-change-course').value;
+      const newSection = document.getElementById('profile-change-section').value;
+
+      currentUser.course = newCourse;
+      currentUser.section = newSection;
+      saveDatabase();
+      
+      showToast(`Horario actualizado a ${newCourse} ${newSection}`, 'success');
+      launchDashboard();
+    }
+
+    /* ==========================================================================
+       15. UI HELPERS (Modals, Toasts, Mobile Menu)
+       ========================================================================== */
+
+    function showModal(contentHtml) {
+      const overlay = document.getElementById('modal-container');
+      const box = document.getElementById('modal-box');
+      box.innerHTML = contentHtml;
+      overlay.classList.remove('hidden');
+      setTimeout(() => {
+        box.classList.remove('scale-95', 'opacity-0');
+        box.classList.add('scale-100', 'opacity-100');
+      }, 10);
+    }
+
+    function closeModal() {
+      const overlay = document.getElementById('modal-container');
+      const box = document.getElementById('modal-box');
+      box.classList.remove('scale-100', 'opacity-100');
+      box.classList.add('scale-95', 'opacity-0');
+      setTimeout(() => {
+        overlay.classList.add('hidden');
+      }, 200);
+    }
+
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      
+      const colors = {
+        success: 'bg-emerald-600 text-white',
+        error: 'bg-rose-600 text-white',
+        info: 'bg-brand-600 text-white'
+      };
+
+      toast.className = `p-3 rounded-xl shadow-xl text-xs font-bold ${colors[type] || colors.info} flex items-center justify-between pointer-events-auto transform transition-all duration-300 translate-x-10 opacity-0`;
+      toast.innerHTML = `<span>${message}</span><button onclick="this.parentElement.remove()" class="ml-3 text-white/80 hover:text-white">&times;</button>`;
+
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.classList.remove('translate-x-10', 'opacity-0');
+      }, 10);
+
+      setTimeout(() => {
+        toast.classList.add('translate-x-10', 'opacity-0');
+        setTimeout(() => toast.remove(), 300);
+      }, 4000);
+    }
+
+    function toggleSidebarCollapse() {
+      const sidebar = document.getElementById('sidebar');
+      sidebar.classList.toggle('md:w-64');
+      sidebar.classList.toggle('md:w-20');
+      document.querySelectorAll('.sidebar-text').forEach(el => el.classList.toggle('hidden'));
+    }
+
+    function toggleMobileMenu() {
+      const sidebar = document.getElementById('sidebar');
+      sidebar.classList.toggle('hidden');
+    }
+
+    // Network status listener
+    window.addEventListener('online', () => document.getElementById('offline-bar').classList.add('hidden'));
+    window.addEventListener('offline', () => document.getElementById('offline-bar').classList.remove('hidden'));
+
+    // App Initialization
+    window.onload = function() {
+      console.log('MetaStudy Initialized Successfully.');
+    };
+  </script>
+</body>
+</html>
